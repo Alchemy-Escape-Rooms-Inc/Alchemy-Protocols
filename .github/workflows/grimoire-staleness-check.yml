@@ -43,15 +43,15 @@ jobs:
           # All escape-room repos to monitor
           REPOS=(
             "New-Cannons"
-            "Compass-Prop"
-            "CabinDoor_S3"
-            "CoveSlidingDoor"
+            "Compass"
+            "CabinDoor"
+            "CoveDoor"
             "JungleDoor"
-            "BarrelPiston"
+            "Barrel-Piston"
             "Driftwood"
             "Wireless-Motion-Sensor"
             "AutomaticSlidingDoor"
-            "CaptainsCuffs"
+            "Captains-Cuffs"
             "Balancing-Scale"
             "LuminousShell"
             "ShipNavMap"
@@ -61,13 +61,10 @@ jobs:
             "hall-sensor-with-mqtt"
             "WatchTower"
             "Eleven-Labs-Avatar-Project"
-            "M3"
             "BACIntegration"
+            "TridentCabinet"
+            "MonkeyDoors"
             "Original_Cannon_Legacy"
-            "servo-sweep-cannon"
-            "LeafBlower"
-            "Fog-Machine"
-            "WallPanel2"
           )
 
           STALE_COUNT=0
@@ -200,19 +197,19 @@ jobs:
 
           # Check for existing open staleness issue
           EXISTING=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Grimoire/issues?labels=staleness-check&state=open" \
+            "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Protocols/issues?labels=staleness-check&state=open" \
             | python3 -c "import sys,json; issues=json.load(sys.stdin); print(issues[0]['number'] if issues else '')" 2>/dev/null)
 
           if [ -n "$EXISTING" ]; then
             curl -s -X PATCH -H "Authorization: token $GH_TOKEN" \
               -H "Content-Type: application/json" \
-              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Grimoire/issues/$EXISTING" \
+              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Protocols/issues/$EXISTING" \
               -d "$(python3 -c "import json; print(json.dumps({'body': open('report.md').read()}))")"
             echo "Updated existing issue #$EXISTING"
           else
             curl -s -X POST -H "Authorization: token $GH_TOKEN" \
               -H "Content-Type: application/json" \
-              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Grimoire/issues" \
+              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Protocols/issues" \
               -d "$(python3 -c "import json; print(json.dumps({'title': 'Grimoire Update Report - ' + __import__('datetime').datetime.now().strftime('%Y-%m-%d'), 'body': open('report.md').read(), 'labels': ['staleness-check']}))")"
             echo "Created new staleness issue"
           fi
@@ -223,13 +220,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           EXISTING=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Grimoire/issues?labels=staleness-check&state=open" \
+            "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Protocols/issues?labels=staleness-check&state=open" \
             | python3 -c "import sys,json; issues=json.load(sys.stdin); print(issues[0]['number'] if issues else '')" 2>/dev/null)
 
           if [ -n "$EXISTING" ]; then
             curl -s -X PATCH -H "Authorization: token $GH_TOKEN" \
               -H "Content-Type: application/json" \
-              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Grimoire/issues/$EXISTING" \
+              "https://api.github.com/repos/Alchemy-Escape-Rooms-Inc/Alchemy-Protocols/issues/$EXISTING" \
               -d '{"state": "closed", "state_reason": "completed"}'
             echo "Closed resolved issue #$EXISTING"
           fi
+
