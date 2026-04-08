@@ -19,7 +19,7 @@ echo.
 echo [1/2] Creating WatchTower auto-start task...
 
 schtasks /create /tn "Alchemy\WatchTower AutoStart" ^
-    /tr "C:\Users\joshu\Repos\Alchemy-Grimoire\start-watchtower.bat" ^
+    /tr "C:\Users\joshu\Repos\Alchemy-Protocols\start-watchtower.bat" ^
     /sc onlogon ^
     /rl highest ^
     /f
@@ -38,7 +38,7 @@ echo.
 echo [2/2] Creating daily 6 AM repo update task...
 
 schtasks /create /tn "Alchemy\Daily Repo Update" ^
-    /tr "C:\Users\joshu\Repos\Alchemy-Grimoire\update-all-repos.bat" ^
+    /tr "C:\Users\joshu\Repos\Alchemy-Protocols\update-all-repos.bat" ^
     /sc daily ^
     /st 06:00 ^
     /rl highest ^
