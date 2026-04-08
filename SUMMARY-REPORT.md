@@ -37,7 +37,7 @@ The 3 non-escape-room repos on the personal account (AI-Bot, Taz, SafetoSpend) a
 | Status | Count | Devices |
 |--------|------:|---------|
 | ✅ Fully Compliant | 4 | New-Cannons (x2), Compass (x3), Driftwood |
-| ⚠️ Mostly Compliant | 4 | CabinDoor (no heartbeat), CoveSlidingDoor (30s heartbeat), JungleDoor (30s heartbeat, space in topic), BarrelPiston (no PING/PONG) |
+| ⚠️ Mostly Compliant | 4 | CabinDoor (no heartbeat), CoveSlidingDoor (30s heartbeat), JungleDoor (30s heartbeat — topic space resolved v3.3.0), BarrelPiston (no PING/PONG) |
 | ⚠️ Partially Compliant | 2 | Wireless-Motion-Sensor (no PING/PONG/reset), AutomaticSlidingDoor (ESP32 version only) |
 | ❌ Non-Compliant | 3 | hall-sensor-with-mqtt (different topics), Eleven-Labs (different broker), Original_Cannon_Legacy (wrong IP) |
 | ❌ No Network | 5 | CaptainsCuffs, Balancing-Scale, Ruins-Wall-Panel, Sun-Dial, WaterFountain |
@@ -54,7 +54,7 @@ The 3 non-escape-room repos on the personal account (AI-Bot, Taz, SafetoSpend) a
 |-------|----------|---------|
 | Original_Cannon_Legacy uses 10.1.10.130 | Critical | Should be 10.1.10.115 (or deprecate entirely) |
 | Eleven-Labs-Avatar uses 10.1.10.228 | Critical | Different server — can't talk to props |
-| JungleDoor has space in topic name | High | "Jungle Door" vs "JungleDoor" in WatchTower |
+| JungleDoor topic space | ~~High~~ | ✅ RESOLVED in MANIFEST v3.3.0 — DEVICE_NAME = "JungleDoor" |
 | CoveSlidingDoor 30s heartbeat | Medium | Should be 5min per standard |
 | JungleDoor 30s heartbeat | Medium | Should be 5min per standard |
 | CabinDoor placeholder credentials | Critical | Won't connect to WiFi with "YOUR_SSID" |
@@ -121,3 +121,4 @@ NOT ESCAPE ████░░░░░░░░░░░░░░░░  2 repos
 ---
 
 *This report was generated from a complete audit of 31 GitHub repositories, totaling approximately 6,000+ lines of firmware source code across both the Alchemy-Escape-Rooms-Inc organization and AlchemyEscapeRooms personal account.*
+
