@@ -1233,7 +1233,7 @@ Firmware contains hardcoded placeholder values:
 
 ### 24. JungleDoor — Space in MQTT Topic Name
 
-**Status:** ⚠️ ACTIVE
+**Status:** ✓ RESOLVED — Fixed in MANIFEST.h v3.3.0 (2026-03-17). DEVICE_NAME is now "JungleDoor" (no space). Confirm deployed firmware matches.
 
 **Symptoms:**
 - M3 sends commands to JungleDoor
@@ -1555,4 +1555,5 @@ After reboot, re-enter your display output assignments and projector mapping fro
 
 **Lesson Learned:**
 Windows aggressively caches monitor configurations. The registry doesn't clean itself — every display that was ever connected leaves an entry. Clearing all three registry locations (DISPLAY, Configuration, Connectivity) plus removing ghost monitors in Device Manager is the complete reset. Doing only one or two locations may not fully resolve the issue.
+
 
