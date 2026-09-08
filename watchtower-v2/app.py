@@ -36,6 +36,7 @@ from routes.guardian_api import guardian_api
 from routes.pages import pages
 from routes.plugs_api import plugs_api
 from routes.say_api import say_api, set_mqtt_client as say_set_mqtt_client
+from routes.direct_api import direct_api, set_mqtt_client as direct_set_mqtt_client
 
 # Configure logging
 logging.basicConfig(
@@ -92,6 +93,7 @@ def create_app():
     app.register_blueprint(pages)
     app.register_blueprint(plugs_api)
     app.register_blueprint(say_api)   # Talk to the Players (/api/say)
+    app.register_blueprint(direct_api)  # Direct the Character (/api/direct)
 
     # Disable caching for development
     @app.after_request
@@ -154,6 +156,7 @@ def main():
     # Wire MQTT client into API routes + Guardian
     set_mqtt_client(mqtt_client)
     say_set_mqtt_client(mqtt_client)
+    direct_set_mqtt_client(mqtt_client)
     guardian.init(mqtt_client)
     init_chat(mqtt_client)
 

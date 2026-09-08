@@ -180,6 +180,12 @@ class MQTTClient:
             #                  map only) = proof the game is actually READING
             #                  the steering wheel. Drives Guardian pirate_wheel.
             "wheel":       {"last_seen": None, "detail": None},
+            #   ai_phase    -> MermaidsTale/AI/Phase "<phase>|<agent>" from the
+            #                  brain (30 s heartbeat + on change): who is live.
+            #   ai_direct_result -> MermaidsTale/AI/DirectResult (JSON): the
+            #                  brain's answer to a Direct-the-Character note.
+            "ai_phase":    {"last_seen": None, "detail": None},
+            "ai_direct_result": {"last_seen": None, "detail": None},
         }
 
         # Last retained WatchTower/ShipCameraTuning payload (JSON string) —
@@ -784,6 +790,15 @@ class MQTTClient:
         # the wheel sits still (09-05 log: idle gaps up to 83s).
         elif topic == "MermaidsTale/WheelPos":
             sig = self.system_signals["wheel"]
+            sig["last_seen"] = now
+            sig["detail"] = payload
+        # AI brain phase + Direct-the-Character result (routes/direct_api.py).
+        elif topic == "MermaidsTale/AI/Phase":
+            sig = self.system_signals["ai_phase"]
+            sig["last_seen"] = now
+            sig["detail"] = payload
+        elif topic == "MermaidsTale/AI/DirectResult":
+            sig = self.system_signals["ai_direct_result"]
             sig["last_seen"] = now
             sig["detail"] = payload
         # Helm audio brain health: raw JSON, parsed by routes/say_api.py.

@@ -153,6 +153,29 @@
     </div>
 </div>
 
+<!-- Direct the Character (2026-09-08): a private note to the LIVE AI character.
+     Unlike Talk to the Players (your words, character voice, no AI), this hands
+     the note to the running brain: Red Beard / Evalee act on it in character.
+     Backed by /api/direct -> MermaidsTale/AI/Direct; result on AI/DirectResult. -->
+<div class="gc-cat" style="margin-bottom:18px;">
+    <div class="gc-cat-head" onclick="toggleDirect()">
+        <span><span id="dr-arrow" style="display:inline-block; width:1em; opacity:.6;">▾</span>🎭 Direct the Character <span style="font-size:.75rem; opacity:.5; font-weight:400;">— a private note to the live character; they act on it in their own words</span></span>
+        <span class="gc-cat-badge" id="dr-badge">…</span>
+    </div>
+    <div class="pw-body" id="dr-section">
+        <div class="say-row">
+            <input id="dr-text" type="text" maxlength="500" placeholder="e.g. They're stuck on the barrels — rib them about it (Enter to send)"
+                   autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault(); directSend();}">
+            <button class="say-btn" id="dr-btn" onclick="directSend()">🎭 Send note</button>
+        </div>
+        <div class="say-opts">
+            <div class="say-group" id="dr-mode"><span class="lbl">Mode</span></div>
+        </div>
+        <div class="say-auto" id="dr-live">…</div>
+        <table class="say-hist" id="dr-hist"><tbody></tbody></table>
+    </div>
+</div>
+
 <!-- Bench props — checked props sit THIS round out: the checklist skips their
      PING (and their start-position rows) so Start unlocks without them.
      The bench clears itself the moment a game start fires. -->
@@ -730,6 +753,98 @@ function saySend() {
 
 loadSay();
 setInterval(loadSay, 5000);
+
+// ===== Direct the Character — GM note -> /api/direct -> MermaidsTale/AI/Direct
+// -> the live brain fires it as a private stage direction. ===============
+let drCtx = null, drMode = "direct", drSending = false;
+
+function toggleDirect() {
+    const b = document.getElementById("dr-section");
+    const open = (b.style.display === "none");
+    b.style.display = open ? "" : "none";
+    document.getElementById("dr-arrow").textContent = open ? "▾" : "▸";
+}
+
+function renderDirect() {
+    if (!drCtx) return;
+    const g = document.getElementById("dr-mode");
+    if (g.querySelectorAll(".say-pill").length === 0) {
+        (drCtx.modes || []).forEach(m => {
+            const p = document.createElement("span");
+            p.className = "say-pill"; p.dataset.id = m.id; p.textContent = m.label; p.title = m.label;
+            p.onclick = () => { drMode = m.id; renderDirect(); };
+            g.appendChild(p);
+        });
+    }
+    g.querySelectorAll(".say-pill").forEach(p => p.classList.toggle("on", p.dataset.id === drMode));
+    const badge = document.getElementById("dr-badge");
+    const live = document.getElementById("dr-live");
+    const l = drCtx.live || {};
+    if (!l.brain_up) {
+        badge.textContent = "brain down"; badge.className = "gc-cat-badge bad";
+        live.className = "say-auto off";
+        live.innerHTML = "🧠 <b>The AI Character program is not running</b> — nothing can act on a note. Start it (START bat) and this works.";
+    } else if (!l.fresh) {
+        badge.textContent = "brain up"; badge.className = "gc-cat-badge";
+        live.className = "say-auto";
+        live.innerHTML = "🧠 Brain is up but hasn't reported who is live yet (needs the 09-08 brain build) — a note will still be sent.";
+    } else if (l.agent === "none") {
+        badge.textContent = "no character"; badge.className = "gc-cat-badge bad";
+        live.className = "say-auto off";
+        live.innerHTML = `😶 <b>No character is live</b> (${escSay(l.phase_label || l.phase)}). Red Beard wakes on the skull key, Evalee on the jungle door.`;
+    } else {
+        badge.textContent = l.agent_label; badge.className = "gc-cat-badge";
+        live.className = "say-auto";
+        live.innerHTML = `🎭 <b>${escSay(l.agent_label)}</b> is live (${escSay(l.phase_label || l.phase)}) → your note goes to them as a private direction`;
+    }
+    const tb = document.querySelector("#dr-hist tbody");
+    tb.innerHTML = "";
+    (drCtx.history || []).forEach(h => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = "<td></td><td></td><td></td><td></td>";
+        tr.children[0].textContent = h.time;
+        tr.children[1].textContent = `${h.mode_label} → ${h.agent_label}`;
+        tr.children[2].textContent = h.text;
+        tr.children[3].textContent = h.ok === true ? "✓ acted on" : (h.ok === false ? "FAILED: " + (h.error || "") : "sent…");
+        if (h.ok === false) tr.children[3].className = "bad";
+        tb.appendChild(tr);
+    });
+}
+
+function loadDirect() {
+    return fetch("/api/direct/context").then(r => r.json()).then(c => { drCtx = c; renderDirect(); }).catch(() => {});
+}
+
+function directSend() {
+    const inp = document.getElementById("dr-text");
+    const text = inp.value.trim();
+    if (!text || drSending) return;
+    drSending = true;
+    const btn = document.getElementById("dr-btn");
+    btn.disabled = true; btn.textContent = "🎭 Sending…";
+    inp.disabled = true;
+    fetch("/api/direct", {method:"POST", headers:{"Content-Type":"application/json"},
+           body: JSON.stringify({text, mode: drMode})})
+        .then(r => r.json())
+        .then(j => {
+            if (j.ok) {
+                inp.value = "";
+                showMsg(`🎭 Note sent to ${j.sent.agent_label} (${j.sent.mode_label}): "${j.sent.text}"`, false);
+            } else {
+                showMsg("🎭 Not sent: " + (j.error || "unknown error"), true);
+            }
+        })
+        .catch(e => showMsg("🎭 Not sent: " + e, true))
+        .finally(() => {
+            drSending = false;
+            btn.disabled = false; btn.textContent = "🎭 Send note";
+            inp.disabled = false; inp.focus();
+            setTimeout(loadDirect, 1500);
+        });
+}
+
+loadDirect();
+setInterval(loadDirect, 5000);
 
 // ===== Bench props — sit a prop out for this round ==========================
 // Checked = the checklist skips this board's PING + start-position rows, so
