@@ -37,6 +37,7 @@ from routes.pages import pages
 from routes.plugs_api import plugs_api
 from routes.say_api import say_api, set_mqtt_client as say_set_mqtt_client
 from routes.direct_api import direct_api, set_mqtt_client as direct_set_mqtt_client
+from routes.calls_api import calls_api
 
 # Configure logging
 logging.basicConfig(
@@ -94,6 +95,7 @@ def create_app():
     app.register_blueprint(plugs_api)
     app.register_blueprint(say_api)   # Talk to the Players (/api/say)
     app.register_blueprint(direct_api)  # Direct the Character (/api/direct)
+    app.register_blueprint(calls_api)   # Alyssa Calls (/api/calls)
 
     # Disable caching for development
     @app.after_request

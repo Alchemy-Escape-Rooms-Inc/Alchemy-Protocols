@@ -38,3 +38,6 @@ watchtower-v2/tink_notes.json
 # Operator tuning mirror (written on every slider move)
 watchtower-v2/tuning_state.json
 watchtower-v2/tuning_state.json.tmp
+
+watchtower-v2/calls_cache.json
+watchtower-v2/calls_cache.json.tmp

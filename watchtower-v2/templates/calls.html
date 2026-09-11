@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Alyssa Calls{% endblock %}
+
+{% block head %}
+<style>
+.calls-wrap { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+.calls-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.calls-head h1 {
+    font-family: var(--font-display); font-size: 20px; margin: 0;
+    background: var(--brand-gradient-h); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text;
+}
+.calls-sub { color: var(--text-dim); font-size: 12px; }
+.calls-spacer { flex: 1; }
+.calls-toggle { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 12px; cursor: pointer; user-select: none; }
+.calls-toggle input { accent-color: var(--brand-purple); }
+
+.calls-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.calls-tile {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px;
+}
+.calls-tile .n { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--text-bright); line-height: 1.1; }
+.calls-tile .l { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+.calls-tile.bad .n { color: var(--red); }
+.calls-tile.warn .n { color: var(--orange); }
+
+.calls-banner {
+    display: none; align-items: flex-start; gap: 10px; margin-bottom: 14px;
+    background: var(--red-dim); border: 1px solid rgba(239,68,68,.4); border-radius: 10px;
+    padding: 10px 14px; color: var(--text); font-size: 13px;
+}
+.calls-banner.show { display: flex; }
+.calls-banner.amber { background: var(--orange-dim); border-color: rgba(245,158,11,.4); }
+
+.calls-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.calls-table th {
+    text-align: left; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-dim); padding: 10px 12px; background: var(--bg-nav); border-bottom: 1px solid var(--border);
+}
+.calls-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+.calls-table tr.row { cursor: pointer; }
+.calls-table tr.row:hover td { background: var(--bg-card-hover); }
+.calls-table tr.own td { opacity: .5; }
+.calls-table tr.failed td { background: rgba(239,68,68,.06); }
+.calls-table tr.day td { background: var(--bg-surface); color: var(--text-dim); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; }
+.c-when { white-space: nowrap; color: var(--text-bright); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.c-num { white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-bright); }
+.c-num .tag { font-family: var(--font-body, inherit); font-size: 10px; color: var(--text-dim); margin-left: 6px; }
+.c-len { white-space: nowrap; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.c-title { color: var(--text-bright); font-weight: 600; }
+.c-sum { color: var(--text-dim); font-size: 12px; margin-top: 2px; line-height: 1.4; }
+.pill { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border-accent); color: var(--text-dim); white-space: nowrap; }
+.pill.red { color: var(--red); border-color: rgba(239,68,68,.5); background: var(--red-dim); }
+.pill.green { color: var(--green); border-color: rgba(74,222,128,.5); background: var(--green-dim); }
+.pill.orange { color: var(--orange); border-color: rgba(245,158,11,.5); background: var(--orange-dim); }
+.pill.blue { color: var(--highlight); border-color: rgba(11,149,245,.5); background: var(--blue-dim); }
+
+.tx { display: none; }
+.tx.open { display: table-row; }
+.tx td { background: var(--bg-surface); padding: 12px 16px 14px 36px; }
+.tx-line { display: flex; gap: 10px; margin: 4px 0; font-size: 13px; line-height: 1.45; }
+.tx-line .t { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; min-width: 42px; padding-top: 2px; }
+.tx-line .who { min-width: 60px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding-top: 2px; }
+.tx-line.agent .who { color: var(--purple); }
+.tx-line.user .who { color: var(--teal); }
+.tx-line .m { color: var(--text); }
+.tx-empty { color: var(--text-dim); font-size: 12px; }
+
+.calls-empty { padding: 40px; text-align: center; color: var(--text-dim); }
+@media (max-width: 800px) {
+    .calls-table th:nth-child(3), .calls-table td:nth-child(3) { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calls-wrap">
+    <div class="calls-head">
+        <h1>☎️ Alyssa Calls</h1>
+        <span class="calls-sub" id="calls-sub">Loading from ElevenLabs…</span>
+        <span class="calls-spacer"></span>
+        <label class="calls-toggle"><input type="checkbox" id="hide-own" checked> hide our own test calls</label>
+        <label class="calls-toggle"><input type="checkbox" id="hide-junk"> hide junk (under 10 s, no words)</label>
+        <button class="btn btn-gold btn-sm" onclick="loadCalls(true)">↻ Refresh</button>
+    </div>
+
+    <div id="calls-error" class="calls-banner"><span>⚠️</span><div id="calls-error-text"></div></div>
+    <div id="calls-failed-banner" class="calls-banner amber"><span>📵</span><div id="calls-failed-text"></div></div>
+
+    <div class="calls-tiles">
+        <div class="calls-tile"><div class="n" id="t-today">–</div><div class="l">calls today</div></div>
+        <div class="calls-tile"><div class="n" id="t-week">–</div><div class="l">last 7 days</div></div>
+        <div class="calls-tile" id="tile-failed"><div class="n" id="t-failed">–</div><div class="l">failed / never connected (7d)</div></div>
+        <div class="calls-tile"><div class="n" id="t-transfer">–</div><div class="l">asked for a person (7d)</div></div>
+        <div class="calls-tile"><div class="n" id="t-avg">–</div><div class="l">avg length (7d)</div></div>
+    </div>
+
+    <table class="calls-table">
+        <thead><tr>
+            <th>When</th><th>Caller</th><th>Length</th><th>What they wanted</th><th>Outcome</th>
+        </tr></thead>
+        <tbody id="calls-body"><tr><td colspan="5" class="calls-empty">Loading…</td></tr></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _calls = [];
+let _own = [];
+const _openTx = new Set();
+
+function fmtNum(n) {
+    if (!n) return '<span style="color:var(--text-muted)">unknown</span>';
+    const m = n.match(/^\+1(\d{3})(\d{3})(\d{4})$/);
+    return m ? `${m[1]}-${m[2]}-${m[3]}` : escapeHtml(n);
+}
+function fmtLen(s) {
+    s = Math.round(s || 0);
+    if (s < 60) return s + 's';
+    return Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's';
+}
+function fmtWhen(ts) {
+    const d = new Date(ts * 1000);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+function dayKey(ts) {
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function isFailed(c) { return c.status === 'failed' || (!c.secs && !c.messages); }
+function isJunk(c) { return !isFailed(c) && c.secs < 10 && !c.title; }
+function wantedPerson(c) { return (c.tools || []).some(t => t.startsWith('transfer_to_number')) || /transfer/i.test(c.termination_reason || ''); }
+
+function outcomePills(c) {
+    const p = [];
+    if (isFailed(c)) p.push('<span class="pill red">never connected</span>');
+    else if (wantedPerson(c)) p.push('<span class="pill blue">transferred to a person</span>');
+    else if (c.call_successful === 'success') p.push('<span class="pill green">handled</span>');
+    else if (c.call_successful === 'failure') p.push('<span class="pill orange">not resolved</span>');
+    if (c.sentiment === 'negative' || (c.frustration || 0) >= 0.5) p.push('<span class="pill red">frustrated</span>');
+    if ((c.tools || []).includes('check_availability')) p.push('<span class="pill">checked availability</span>');
+    return p.join(' ');
+}
+
+function render() {
+    const hideOwn = document.getElementById('hide-own').checked;
+    const hideJunk = document.getElementById('hide-junk').checked;
+    const body = document.getElementById('calls-body');
+    const rows = _calls.filter(c => !(hideOwn && c.is_own_number) && !(hideJunk && isJunk(c)));
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="5" class="calls-empty">No calls to show.</td></tr>'; return; }
+    let html = '', lastDay = '';
+    for (const c of rows) {
+        const dk = dayKey(c.start);
+        if (dk !== lastDay) { html += `<tr class="day"><td colspan="5">${dk}</td></tr>`; lastDay = dk; }
+        const cls = ['row', c.is_own_number ? 'own' : '', isFailed(c) ? 'failed' : ''].join(' ');
+        const title = c.title || (isFailed(c) ? 'Call failed before Alyssa answered' : (c.secs < 10 ? 'Hung up right away' : 'No summary yet'));
+        const sum = c.summary ? `<div class="c-sum">${escapeHtml(c.summary)}</div>` : '';
+        const tag = c.is_own_number ? '<span class="tag">us</span>' : '';
+        html += `<tr class="${cls}" onclick="toggleTx('${c.conversation_id}')">
+            <td class="c-when">${fmtWhen(c.start)}</td>
+            <td class="c-num">${fmtNum(c.caller)}${tag}</td>
+            <td class="c-len">${fmtLen(c.secs)}</td>
+            <td><div class="c-title">${escapeHtml(title)}</div>${sum}</td>
+            <td>${outcomePills(c)}</td>
+        </tr>
+        <tr class="tx ${_openTx.has(c.conversation_id) ? 'open' : ''}" id="tx-${c.conversation_id}"><td colspan="5">
+            <div class="tx-empty">Loading transcript…</div></td></tr>`;
+    }
+    body.innerHTML = html;
+    for (const id of _openTx) loadTx(id);
+}
+
+function toggleTx(id) {
+    const tr = document.getElementById('tx-' + id);
+    if (!tr) return;
+    if (tr.classList.contains('open')) { tr.classList.remove('open'); _openTx.delete(id); return; }
+    tr.classList.add('open'); _openTx.add(id); loadTx(id);
+}
+function loadTx(id) {
+    const tr = document.getElementById('tx-' + id);
+    if (!tr || tr.dataset.loaded) return;
+    fetch('/api/calls/' + id).then(r => r.json()).then(d => {
+        tr.dataset.loaded = '1';
+        const td = tr.querySelector('td');
+        if (d.error) { td.innerHTML = `<div class="tx-empty">Could not load transcript: ${escapeHtml(d.error)}</div>`; return; }
+        if (!d.transcript || !d.transcript.length) { td.innerHTML = '<div class="tx-empty">No words were exchanged on this call.</div>'; return; }
+        td.innerHTML = d.transcript.map(l => `<div class="tx-line ${l.role}">
+            <span class="t">${l.secs != null ? fmtLen(l.secs) : ''}</span>
+            <span class="who">${l.role === 'agent' ? 'Alyssa' : 'Caller'}</span>
+            <span class="m">${escapeHtml(l.text)}</span></div>`).join('');
+    });
+}
+
+function stats() {
+    const now = Date.now() / 1000;
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const real = _calls.filter(c => !c.is_own_number);
+    const today = real.filter(c => c.start >= dayStart.getTime() / 1000);
+    const week = real.filter(c => c.start >= now - 7 * 86400);
+    const failed = week.filter(isFailed);
+    const transfers = week.filter(c => !isFailed(c) && wantedPerson(c));
+    const answered = week.filter(c => !isFailed(c));
+    const avg = answered.length ? answered.reduce((a, c) => a + (c.secs || 0), 0) / answered.length : 0;
+    document.getElementById('t-today').textContent = today.length;
+    document.getElementById('t-week').textContent = week.length;
+    document.getElementById('t-failed').textContent = failed.length;
+    document.getElementById('t-transfer').textContent = transfers.length;
+    document.getElementById('t-avg').textContent = answered.length ? fmtLen(avg) : '–';
+    const tile = document.getElementById('tile-failed');
+    tile.classList.toggle('bad', failed.length >= 3);
+    tile.classList.toggle('warn', failed.length > 0 && failed.length < 3);
+
+    // Louder warning when several DIFFERENT numbers failed on the same day —
+    // that is the phone line / ElevenLabs being down, not one flaky caller.
+    const byDay = {};
+    for (const c of failed) { const k = dayKey(c.start); (byDay[k] = byDay[k] || new Set()).add(c.caller || c.conversation_id); }
+    const badDays = Object.entries(byDay).filter(([, s]) => s.size >= 2).map(([k, s]) => `${k} (${s.size} different callers)`);
+    const b = document.getElementById('calls-failed-banner');
+    if (badDays.length) {
+        document.getElementById('calls-failed-text').innerHTML =
+            `<b>Calls never connected on ${badDays.join(', ')}.</b> Several different numbers each failed at 0 seconds. ` +
+            `That points to the phone line or ElevenLabs being down at the time, not a caller problem.`;
+        b.classList.add('show');
+    } else b.classList.remove('show');
+}
+
+function loadCalls(force) {
+    const sub = document.getElementById('calls-sub');
+    if (force) sub.textContent = 'Refreshing from ElevenLabs…';
+    fetch('/api/calls' + (force ? '?refresh=1' : '')).then(r => r.json()).then(d => {
+        _own = d.own_numbers || [];
+        const err = document.getElementById('calls-error');
+        if (d.error) { document.getElementById('calls-error-text').textContent = d.error; err.classList.add('show'); }
+        else err.classList.remove('show');
+        if (d.calls && d.calls.length) _calls = d.calls.slice().sort((a, b) => b.start - a.start);
+        const t = d.fetched_at ? new Date(d.fetched_at * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '–';
+        sub.textContent = `${_calls.length} most recent calls · pulled ${t} · click a call for the transcript`;
+        stats(); render();
+    }).catch(e => {
+        document.getElementById('calls-error-text').textContent = 'WatchTower could not reach its own calls API: ' + e;
+        document.getElementById('calls-error').classList.add('show');
+    });
+}
+
+document.getElementById('hide-own').addEventListener('change', () => { stats(); render(); });
+document.getElementById('hide-junk').addEventListener('change', render);
+loadCalls(false);
+setInterval(() => loadCalls(false), 60000);
+</script>
+{% endblock %}

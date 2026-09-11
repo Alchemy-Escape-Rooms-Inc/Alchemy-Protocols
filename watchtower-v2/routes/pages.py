@@ -54,6 +54,12 @@ def debug_log():
     return render_template("debug_log.html")
 
 
+# Alyssa (phone receptionist) call history — pulled live from ElevenLabs.
+@pages.route("/calls")
+def alyssa_calls():
+    return render_template("calls.html")
+
+
 # Tink (ex-Smee) lives in the floating widget on every page now.
 @pages.route("/chat")
 def chat():

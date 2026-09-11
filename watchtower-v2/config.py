@@ -153,6 +153,21 @@ AUTO_REMEDIATE_STATE_FILE = os.path.join(os.path.dirname(__file__),
                                          "auto_remediate_state.json")
 
 # =============================================================================
+# ALYSSA CALLS — phone receptionist call history (routes/calls_api.py)
+# =============================================================================
+# Alyssa is the ElevenLabs voice agent on the business line. Her call history
+# only lives in ElevenLabs; the /calls page pulls it through their API. The
+# key + agent id are read from the alyssa-avatar repo's .env (never committed)
+# unless ELEVENLABS_API_KEY / ALYSSA_AGENT_ID are set in the environment.
+ALYSSA_ENV_PATH = r"C:\Users\Alchemy\Repos\alyssa-avatar\.env"
+ALYSSA_AGENT_ID_FALLBACK = "agent_0001kz94d9mzfevvzk5bv046bxkj"
+ALYSSA_CALLS_CACHE = os.path.join(os.path.dirname(__file__), "calls_cache.json")
+ALYSSA_CALLS_REFRESH_S = 60         # list re-pull cadence while the page is open
+ALYSSA_CALLS_PAGE_SIZE = 100        # newest N conversations shown
+# Numbers that are "us" (owner/staff test calls) — shown greyed, hideable.
+ALYSSA_OWN_NUMBERS = ["+12127773221"]
+
+# =============================================================================
 # PRE-GAME READINESS CHECKS
 # =============================================================================
 # The dashboard's Pre-Game Readiness banner. All checks are suppressed while
