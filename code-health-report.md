@@ -1274,3 +1274,18 @@ The following repos were updated since the last Grimoire revision:
 
 
 *Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-12 09:53 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 5 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
