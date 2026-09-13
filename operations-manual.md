@@ -527,14 +527,70 @@ Verify which version is deployed on your device.
 
 ---
 
-### 8. STAR-CHARTS
+### 8. STAR-CHARTS (StarTable, StarTableSprite, Star Table Sprite player)
 
 **Description:**
-⚠️ **NO REPO FOUND** — Listed in WatchTower config but no GitHub repository available. Firmware status and implementation details unknown.
+The Star Table constellation puzzle and its constellation screen. Guests place ten magnetic stars on the table; each completed constellation (turtle, mermaid, trident, seahorse, boat) should play a chime through M3 and advance the picture on the Sprite screen. It is THREE separate boxes and none of them is wired to the others except as noted below. Repo: `Alchemy-Escape-Rooms-Inc/StarTable` (clone at `Repos\StarTable`). Live notes: `Repos\StarTable\log.txt` is not used; the working session log is `C:\Users\Alchemy\log.txt`.
 
-**Status:** Unknown implementation. Check physical hardware for board type and pin labels.
+**The three parts:**
+
+| Part | Board | Where | Talks to |
+|---|---|---|---|
+| Table controller (`Star_Table_FINAL`) | ESP32, no WiFi/MQTT | inside the table, runs 1422 NeoPixels + 10 hall sensors | pulses two wires to the bridge: OUT1 = star found, OUT2 = constellation solved |
+| **StarTableBridge** (`StarTableBridge.ino` v1.2.1) | ESP32, WiFi | beside the table (moved 09-2026, see signal note) | publishes `MermaidsTale/StarTable/Star=triggered` and `MermaidsTale/StarTable/constellation=solved`; after 5 solves `status=SOLVED` (retained) |
+| **StarTableSprite driver** (`StarTableSprite.ino` v3.0.0) | ESP32-S3, WiFi, IP 10.1.10.113 | at the Sprite player, a different part of the room | listens for the bridge's `constellation=solved` and presses the Sprite player's trigger input once per solve |
+| Sprite player | MedeaWiz Sprite DV-S1 (HDMI video player, USB stick) | drives the constellation screen | no network; only the trigger/serial jack |
+
+**MQTT topics:**
+- `MermaidsTale/StarTable/Star` — `triggered` then `clear` 0.5 s later, per star. M3 event 157 "Star Twinkle" plays the chime.
+- `MermaidsTale/StarTable/constellation` — `solved` then `clear`, per constellation. M3 event 158 plays the constellation chime. The Sprite driver advances the screen on this.
+- `MermaidsTale/StarTable/status` — `ONLINE` / `SOLVED` (retained) / `OFFLINE` (LWT) / `HEARTBEAT:...` every 5 min. M3 event 45 "StarTable Solved" fires on `SOLVED`.
+- `MermaidsTale/StarTable/command` — `PING`, `STATUS`, `RESET`, `PUZZLE_RESET`. M3 Cove Reset (event 63) sends `PUZZLE_RESET` here. **The Sprite driver also listens on this topic** for `PUZZLE_RESET` (listen only, never replies there).
+- `MermaidsTale/StarTableSprite/command` — `PING`, `STATUS`, `RESET`, `PUZZLE_RESET`, `PULSE` (one uncounted test press), `ALIGN` (zero the count without pressing).
+- `MermaidsTale/StarTableSprite/status`, `/log` — presence, heartbeat, and a log line for every press.
+- M3 device 13 "Star Chart" must have topic `MermaidsTale/StarTable` (it was `StarChart` until 08-11-2026 and nothing ever fired).
+
+**How the screen works now (v3.0.0, 2026-09-13) — READ THIS BEFORE TOUCHING THE SPRITE PLAYER:**
+
+1. The Sprite player is in **Control Mode = Trigger Low with Interrupt**, Play Mode = Video Control Mode. It plays file 000 in a loop. Each time its trigger input is pulled to ground it plays the NEXT file on the stick (001, 002, 003, 004, then wraps to 001). That "next file per trigger" behaviour needs player firmware 20210416 or newer.
+2. The driver board pulls GPIO 40 to ground for 300 ms per constellation. GPIO 40 goes to **screw 2** on the player's I/O plug, driver GND to **screw 4**. The line idles at 3.3 V.
+3. Trigger mode plays a file ONCE and then falls back to 000. There is no "hold" in trigger mode. So the slide files on the stick are **10-minute loops** of each 30-second clip (originals in `Repos\StarTable\media\originals`). A slide therefore holds for 10 minutes, then the turtle returns until the next solve.
+4. The driver counts presses (saved in flash, survives its own reboot). On `PUZZLE_RESET` it presses the remaining times so the player wraps back to "next = 001" for the next game. Those catch-up presses flash the remaining slides, and the last one stays up for up to 10 minutes.
+5. **If anyone power-cycles the Sprite player**, its pointer goes back to 001 but the driver's count does not. Send `MermaidsTale/StarTableSprite/command = ALIGN` before the next game or the slides come up one off.
+
+**Why it is done this way (the half-day lesson, 2026-09-13):**
+- The Sprite player has a proper serial "loop this file and hold" command (0xFC), but it only works in **Control Mode = Serial Control**, and **this player will not save that setting**. You select Serial Control, press Enter, exit with Return-Return, go back in, and it reads Trigger Low with Interrupt again. Factory reset and a firmware reload (latest `Sprite_20210416_FW.img` from medeawiz.com/Downloads.html, copy to the stick, blue File key, select the .img, Yes) were NOT yet tried and are the only remaining software fixes; otherwise it is a faulty player.
+- In any Trigger mode the player ignores serial bytes completely. A 2 ms serial burst is far too short to count as a button press, so serial commands do nothing at all, not even a flicker.
+- Before that, the driver firmware (v2.x) was sending on **GPIO 4** while the wire was on **GPIO 40**, so nothing ever left the board. The driver's log said "advance -> file 001" every time and was telling the truth about itself; it cannot see the player. A log line from the driver proves nothing about the screen.
+- Setup menu confusion: **Play Mode** = Video Control Mode (correct, leave it) and **Control Mode** = Serial Control / Trigger... are two different lines one after the other.
+- Remote: generic DVD-type IR remote, must point straight at the front of the player. Test it with a phone camera (visible flash). No remote = no way to change Control Mode; the serial setup commands cannot change it. The serial path (v2 code) is kept in the driver behind `SPRITE_MODE_SERIAL` for a player that does hold Serial Control.
+
+**Sprite player I/O plug (screw-terminal adaptor that came with it):**
+
+| Screw | Function |
+|---|---|
+| 1 | 5 V out (100 mA max — do NOT power the ESP32-S3 from it) |
+| 2 | Trigger input / serial RX into the player |
+| 3 | Serial TX out of the player (status byte ~1/s in Serial mode) |
+| 4 | Ground |
+
+**Bridge problems (open as of 2026-09-13):**
+- The bridge was moved to "a more accessible area" and has the worst WiFi signal in the building (-69 to -75 where every other board is -63 or better). At that spot it **freezes and watchdog-reboots every 1-2 minutes while guests are placing stars**, drops messages, and delays others by 20 s. Star chimes are lost outright during a freeze; constellations are caught later but the chime edge may be missed by M3 when `solved` and `clear` arrive in the same millisecond. Fix = move it back toward the access point / away from metal. A freeze that correlates with table activity (NeoPixel noise on the pulse wires) is a second suspect.
+- Boot log line tells you why it restarted: `reset=POWERON` = someone re-plugged it, `reset=WDT` = it froze and rebooted itself, `reset=BROWNOUT` = power supply.
+- v1.2.1 firmware details: pulses are caught by interrupts and must hold HIGH 100 ms to count; count is saved in flash; the table's OUT2 line held high too long inflates the count; after 5 it publishes SOLVED and goes quiet until `PUZZLE_RESET`.
+- The bridge and the Sprite driver count separately. Any missed message leaves them out of step until the next `PUZZLE_RESET`. Planned fix: bridge publishes a retained count and the driver just shows that number.
+- Broker log is the truth: `Alchemy-Grimoire\watchtower-v2\logs\mqtt_*.txt`. Grep `StarTable` and look at the timestamps before theorising.
+
+**Quick checks (in this order):**
+1. `mosquitto_pub -h 10.1.10.115 -t MermaidsTale/StarTable/command -m STATUS` → `PLAYING|n/5|UP:..|V1.2.1|RSSI..|IP..|RST..`. No reply = bridge dead or frozen; re-plug it and read `reset=` on its boot line.
+2. `mosquitto_pub -h 10.1.10.115 -t MermaidsTale/StarTableSprite/command -m STATUS` → `IDLE|v3.0.0|..|SENT0/4|NEXT001|MODETRIGGER|Q0`.
+3. Screen test without the table: `mosquitto_pub ... -t MermaidsTale/StarTable/constellation -m solved` → driver logs "trigger pulse n/4" and the next slide should play. If the log line appears but the screen does nothing: meter GPIO 40 (3.3 V idle, dips to 0 V for 0.3 s on `PULSE`), then the same at screw 2 vs screw 4, then the player's Control Mode.
+4. After a player power-cycle: `... StarTableSprite/command -m ALIGN`.
+
+**Status:** Screen path VERIFIED working 2026-09-13 16:42 (v3.0.0 + 10-minute slides). Bridge reliability at its current location is the open problem.
 
 ---
+
 
 ## COVE AREA
 
@@ -1586,6 +1642,7 @@ These repos provide design documents, CAD files, and configuration references bu
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2025-02-12 | Operations Team | Initial comprehensive audit and manual generation |
+| 1.1 | 2026-09-13 | Claude Code session | Star-Charts section rewritten: three-board layout, Sprite player trigger-mode design (v3.0.0), player gotchas, bridge signal problem |
 
 ---
 

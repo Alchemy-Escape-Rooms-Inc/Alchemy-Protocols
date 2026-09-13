@@ -301,6 +301,28 @@
 
 ---
 
+### Star-Charts: StarTableSprite driver (ESP32-S3) → MedeaWiz Sprite DV-S1
+
+| ESP32-S3 pin | Goes to | Notes |
+|---|---|---|
+| GPIO 40 | Sprite I/O plug screw 2 (trigger / serial RX) | idle HIGH 3.3 V, 300 ms LOW pulse per constellation (v3.0.0). v2.x wrongly used GPIO 4. |
+| GND | Sprite I/O plug screw 4 | shared ground is required |
+| GPIO 18 | (unused) | reserved for Sprite serial TX (screw 3) if Serial Control ever works |
+| USB-C | 5 V supply, own adaptor | do NOT feed the S3 from the Sprite's screw 1 (100 mA max) |
+
+Sprite I/O plug (screw-terminal adaptor): 1 = 5 V out, 2 = RX/trigger in, 3 = TX out, 4 = GND. Player settings: Play Mode = Video Control Mode, Control Mode = Trigger Low with Interrupt (it will not save Serial Control), firmware ≥ 20210416 for next-file-per-trigger.
+
+### Star-Charts: StarTableBridge (ESP32) ← Star_Table_FINAL table controller (ESP32)
+
+| Bridge pin | From table controller | Notes |
+|---|---|---|
+| GPIO 22 (INPUT_PULLDOWN) | HOUSE_OUTPUT_1 = GPIO 22 | star found, 250-750 ms HIGH pulse |
+| GPIO 23 (INPUT_PULLDOWN) | HOUSE_OUTPUT_2 = GPIO 2 | constellation solved, 500 ms HIGH pulse |
+| GND | GND | shared |
+| USB | own 5 V brick | keep it off the NeoPixel supply |
+
+Both are 3.3 V ESP32s, no level shifting. Bridge WiFi: needs a spot with RSSI better than about -65; at -70+ it freezes and watchdog-reboots during play.
+
 ## I2C Address Master Registry
 
 **Complete mapping of all I2C addresses across the escape room:**

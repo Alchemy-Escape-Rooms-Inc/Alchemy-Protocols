@@ -1557,3 +1557,24 @@ After reboot, re-enter your display output assignments and projector mapping fro
 Windows aggressively caches monitor configurations. The registry doesn't clean itself — every display that was ever connected leaves an entry. Clearing all three registry locations (DISPLAY, Configuration, Connectivity) plus removing ghost monitors in Device Manager is the complete reset. Doing only one or two locations may not fully resolve the issue.
 
 
+
+
+## FIELD FIXES 2026
+
+### 17. Star Table Sprite screen never advanced (2026-09-13)
+
+**Symptom:** Constellations solved on the table, no star chimes, and the Sprite screen stayed on slide 000 all game (first noticed at the 09-05 live game, chased on 09-12/09-13).
+
+**Root causes (there were four, stacked):**
+1. **StarTableBridge dead at the table.** Moved to a spot with RSSI -69..-75 (worst in the building); it froze and watchdog-rebooted within 45 s to 2 min of every boot while guests placed stars, so almost no `Star`/`constellation` messages reached the broker. Broker log showed `ONLINE` then LWT `OFFLINE` exactly 45 s later (keepalive 30 s × 1.5) = silent the instant it announced. `reset=WDT` on the next boot line confirmed a freeze, not a power problem. STILL OPEN: move it.
+2. **Sprite driver sent on GPIO 4, the wire was on GPIO 40.** The driver logged "advance -> file 001" faithfully every time; it has no feedback from the player, so its log proves nothing about the screen. Fixed in v2.1.1.
+3. **Sprite player in Trigger Low with Interrupt ignores serial.** Serial commands are 2 ms bursts, far too short to read as a button press. Verified with a meter: 3.3 V idle with dips at the player's screw 2 while sending, screen never moved.
+4. **The player will not save Control Mode = Serial Control.** Select, Enter, Return, Return, re-enter Setup: back to Trigger. So the 0xFC "loop and hold" command is unusable on this unit. (Factory reset / firmware reload not yet tried.)
+
+**Fix shipped:** StarTableSprite v3.0.0 (`d102550`) drives the player like a pushbutton: 300 ms ground pulse on GPIO 40 per solve; player firmware 20210416 plays the next file per trigger. Because trigger mode has no hold, every slide file on the USB stick was looped to 10 minutes (`ffmpeg -stream_loop 19 -c copy`). Count persisted in flash; `PUZZLE_RESET` presses the remaining times to wrap the player back to 001; `ALIGN` re-syncs after a player power-cycle; `PULSE` for meter tests. VERIFIED on screen 16:42.
+
+**Lessons:**
+- The broker log (`watchtower-v2\logs\mqtt_*.txt`) answered "is the bridge alive" in one grep. Start there.
+- A board's own log only proves what left the board. Meter the wire, then the far end of the wire, then the far device's settings.
+- MedeaWiz Setup menu has both **Play Mode = Video Control Mode** and **Control Mode = Serial Control / Trigger...**. They look alike and are not the same thing.
+- Never power the ESP32-S3 from the Sprite's 5 V screw (100 mA); it will brown out and can blow the player's fuse.
