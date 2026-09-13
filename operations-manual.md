@@ -527,6 +527,15 @@ Verify which version is deployed on your device.
 
 ---
 
+
+
+## COVE AREA
+
+### Overview
+Cove features underwater-themed puzzles: sliding doors, driftwood magnetic sensing, balance scales, and luminous shells. Controlled by **Cove BAC** with mixed WiFi and standalone devices.
+
+---
+
 ### 8. STAR-CHARTS (StarTable, StarTableSprite, Star Table Sprite player)
 
 **Description:**
@@ -588,14 +597,6 @@ The Star Table constellation puzzle and its constellation screen. Guests place t
 4. After a player power-cycle: `... StarTableSprite/command -m ALIGN`.
 
 **Status:** Screen path VERIFIED working 2026-09-13 16:42 (v3.0.0 + 10-minute slides). Bridge reliability at its current location is the open problem.
-
----
-
-
-## COVE AREA
-
-### Overview
-Cove features underwater-themed puzzles: sliding doors, driftwood magnetic sensing, balance scales, and luminous shells. Controlled by **Cove BAC** with mixed WiFi and standalone devices.
 
 ---
 
