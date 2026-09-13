@@ -149,7 +149,21 @@ def _load_notes():
         return []
     if not isinstance(data, list):
         return []
-    return [n for n in data if isinstance(n, dict) and n.get("text")]
+    notes = [n for n in data if isinstance(n, dict) and n.get("text")]
+    # A note written by hand (or by an older tool path) may lack an id — the prompt
+    # builder indexed n["id"] and one such note (08-28) killed EVERY chat turn with
+    # KeyError: 'id'. Assign missing ids on load so the notebook can never do that again.
+    next_id = max((n["id"] for n in notes if isinstance(n.get("id"), int)), default=0) + 1
+    fixed = False
+    for n in notes:
+        if not isinstance(n.get("id"), int):
+            n["id"], next_id, fixed = next_id, next_id + 1, True
+    if fixed:
+        try:
+            _save_notes(notes)
+        except OSError:
+            logger.exception("Could not write back repaired Tink notebook")
+    return notes
 
 
 def _save_notes(notes):
@@ -164,7 +178,7 @@ def _tool_remember(note):
     if len(note) > 500:
         return {"error": "Too long — boil it down to one or two sentences (max 500 chars)"}
     notes = _load_notes()
-    if any(n["text"] == note for n in notes):
+    if any(n.get("text") == note for n in notes):
         return {"ok": "Already in the notebook — an identical note exists"}
     if len(notes) >= NOTES_MAX:
         return {"error": f"Notebook is full ({NOTES_MAX} notes) — forget an obsolete one first"}
@@ -192,7 +206,7 @@ def _notes_prompt_block():
     notes = _load_notes()
     if not notes:
         return ""
-    block = "\n".join(f"[{n['id']}] ({n.get('ts', '?')}) {n['text']}" for n in notes)
+    block = "\n".join(f"[{n.get('id', '?')}] ({n.get('ts', '?')}) {n.get('text', '')}" for n in notes)
     if len(block) > NOTES_PROMPT_CAP:
         block = "(oldest notes omitted — notebook over size cap; forget stale ones)\n" \
                 + block[-NOTES_PROMPT_CAP:]
