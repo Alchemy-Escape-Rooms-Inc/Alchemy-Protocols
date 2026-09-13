@@ -83,7 +83,7 @@ MYTHRIC_PATH = r"C:\Program Files (x86)\Mythric Mystery Master\bin\Mystery.exe"
 AMT_XML_LIVE = r"C:\Program Files (x86)\Mythric Mystery Master\stories\AMT\AMT.xml"
 
 # TCP endpoints the show depends on: (host, port, what-it-is)
-A2F_ENDPOINT = ("10.1.10.228", 52000)        # COMMANDCENTER A2F NIM (face animation)
+A2F_ENDPOINT = ("10.1.10.229", 52000)        # COMMANDCENTER A2F NIM (face animation; was .228, DHCP moved it 2026-09-13 after a Wi-Fi drop)
 ELEVENLABS_ENDPOINT = ("api.elevenlabs.io", 443)  # AI character voices (cloud)
 
 # Launcher scripts the START bat calls — all must exist or launch breaks midway.

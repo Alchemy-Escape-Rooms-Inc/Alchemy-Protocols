@@ -742,7 +742,7 @@ Retained MQTT messages on /command topics are a known hazard (reboot loops, comm
 
 Some infrastructure is invisible on MQTT but still yours to know: Docker Desktop on this PC runs \
 the local face-animation container (the game launcher can start Docker itself, adding ~2 min), and \
-COMMANDCENTER (10.1.10.228) runs the Audio2Face container that drives RedBeard's face. WatchTower's \
+COMMANDCENTER (10.1.10.229) runs the Audio2Face container that drives RedBeard's face. WatchTower's \
 Guardian gates game start behind a pre-game checklist — Start only unlocks off a fresh all-green \
 run. When the operator asks about ANY pre-game check, its error text, or why Start is locked, call \
 get_checklist_catalog (every check's meaning, severity, and fix) plus get_checklist_run (latest \

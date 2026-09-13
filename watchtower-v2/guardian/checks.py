@@ -1147,7 +1147,7 @@ def build_checklist(mqtt_client) -> list:
         Check("a2f_endpoint", "Face animation server (COMMANDCENTER)", "Connections", "advisory",
               "Drives RedBeard's mouth movement. If down, he still talks but his face freezes.",
               check_a2f_endpoint,
-              human_fix="Check COMMANDCENTER (10.1.10.228) is on and its A2F Docker container is up."),
+              human_fix="Check COMMANDCENTER (10.1.10.229) is on and its A2F Docker container is up."),
         Check("docker", "Docker daemon", "Connections", "advisory",
               "Runs the local face-animation container. The launcher can start Docker "
               "Desktop itself, it just adds ~2 min to launch.",
