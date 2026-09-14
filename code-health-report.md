@@ -1304,3 +1304,19 @@ The following repos were updated since the last Grimoire revision:
 
 
 *Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-14 12:47 PM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 5 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
