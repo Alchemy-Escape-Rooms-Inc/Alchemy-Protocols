@@ -505,6 +505,35 @@ def _fmt_age(ts: str) -> str:
         return "no data"
 
 
+def _helm_tile() -> dict:
+    """Systems tile for Helm, from its own 2 s MermaidsTale/Audio/status beat
+    (same health read the Talk-to-the-Players panel gates on)."""
+    tile = {"name": "Helm (Sound)", "icon": "🎚️"}
+    try:
+        from routes.say_api import _helm_health
+        h = _helm_health()
+    except Exception as e:  # noqa: BLE001
+        tile.update(status="unknown", detail=f"health read failed: {e}")
+        return tile
+    if h["ok"]:
+        detail = "running · owns " + (h.get("device") or "the Behringer")
+        try:
+            sig = (mqtt_client.get_system_signals() if mqtt_client else {}).get("helm_audio", {})
+            data = json.loads(sig.get("detail") or "{}")
+            up = data.get("uptime_s")
+            if up is not None:
+                detail += f" · up {int(up) // 3600}h{(int(up) % 3600) // 60:02d}m"
+            if data.get("xruns"):
+                detail += f" · {data['xruns']} audio hiccups"
+        except Exception:  # noqa: BLE001
+            pass
+        tile.update(status="online", detail=detail)
+    else:
+        tile.update(status="offline",
+                    detail=(h.get("reason") or "Helm not ready") + " — the whole room is SILENT")
+    return tile
+
+
 def _build_systems(summary: dict) -> list:
     """Assemble the Systems group tiles (first group on the dashboard).
     Mixes live signals (broker, RedBeard/Talking, Windows default) with the
@@ -562,17 +591,26 @@ def _build_systems(summary: dict) -> list:
         "game_running": game_running,
     })
 
-    # 3. M3 Audio (Mythric game runner) — State=Running + last loopback for
-    #    the room M3 drives. M3 owns room/background audio.
+    # 3. M3 Story Engine (Mythric game runner) — State=Running.
+    #    2026-09-17 audit: was "M3 Audio". Since Helm (08-29) M3 plays no sound
+    #    itself — it sends cues to Helm — so the tile is named for what it
+    #    really watches: is the story engine running.
     m3 = signals.get("m3", {})
     m3_age = m3.get("age_s")
     m3_running = m3_age is not None and m3_age <= M3_FRESH_S and (m3.get("detail") == "Running")
     tiles.append({
-        "name": "M3 Audio", "icon": "🎵",
+        "name": "M3 Story Engine", "icon": "📖",
         "status": "online" if m3_running else ("warn" if m3_age is not None else "unknown"),
         "detail": (f"State={m3.get('detail')} ({int(m3_age)}s ago)" if m3_age is not None
                    else "M3 State not seen"),
     })
+
+    # 3.5 Helm — the ONE program that makes sound (since 2026-08-29). M3 cues,
+    #     Unreal's mix and the AI voices all play through it. Added 09-17:
+    #     it was only visible on the /game Guardian checklist, never here.
+    helm = _helm_tile()
+    tiles.append(helm)
+    helm_ok = helm["status"] == "online"
 
     # 4 & 5. Unreal Audio + Each Speaker — from the launcher's per-room
     #    audio loopback verify (tone played -> heard back via camera mic).
@@ -605,11 +643,18 @@ def _build_systems(summary: dict) -> list:
     # is launcher-verify-time truth; this is NOW truth. A session rendering on
     # anything non-NVIDIA (classic: Behringer default fallback = room speaker
     # cubes) turns the tile red mid-game, when it actually matters.
-    ua = _unreal_audio_session_check()
+    # 2026-09-17 audit: under Helm the projector endpoints are DISABLED and the
+    # game streams its mix straight to Helm, so "not on NVIDIA" is no longer
+    # wrong — it would paint a false red every game. The old rule only runs
+    # when Helm is down (legacy fallback path).
+    ua = ({"state": "helm", "device": ""} if helm_ok
+          else _unreal_audio_session_check())
     for tile in tiles:
         if tile["name"] != "Unreal Audio":
             continue
-        if ua["state"] == "wrong":
+        if ua["state"] == "helm":
+            tile["detail"] = "game sound plays through Helm · " + tile["detail"]
+        elif ua["state"] == "wrong":
             tile["status"] = "offline"
             tile["detail"] = (f"LIVE: game session rendering on '{ua['device']}' — "
                               "NOT a projector endpoint! Game audio is playing in the "
@@ -648,24 +693,34 @@ def _build_systems(summary: dict) -> list:
     #    ElevenLabs has no MQTT signal; the launcher's mic_check confirms the
     #    full hear/speak loop the AI uses. Pair it with the brain liveness.
     mic = launcher.get("mic_check")
+    jmic = launcher.get("mic_check_jungle")   # 2026-09-17: Evalee's jungle mic
     if mic:
         ms = mic.get("status")
+        js = jmic.get("status") if jmic else None
+        any_fail = ms == "FAIL" or js == "FAIL"
+        all_pass = ms == "PASS" and js in ("PASS", None)
         tiles.append({
             "name": "AI Audio (ElevenLabs)", "icon": "🗣️",
-            "status": "online" if (ms == "PASS" and ai_online) else (
-                "offline" if ms == "FAIL" else "warn"),
-            "detail": f"mic {ms} · {_fmt_age(mic.get('ts',''))}",
+            "status": "online" if (all_pass and ai_online) else (
+                "offline" if any_fail else "warn"),
+            "detail": (f"ship mic {ms} · jungle mic {js or 'not tested'} · "
+                       f"{_fmt_age(mic.get('ts',''))}"),
         })
     else:
         tiles.append({"name": "AI Audio (ElevenLabs)", "icon": "🗣️",
                       "status": "unknown", "detail": "run launcher mic check"})
 
     # 7. Windows Speakers — live default-device query.
-    win = _windows_default_playback()
-    tiles.append({
-        "name": "Windows Speakers", "icon": "🪟",
-        "status": win["status"], "detail": win["name"],
-    })
+    #    2026-09-17 audit: RETIRED while Helm is up. Nothing in the game plays
+    #    on the Windows default device any more (Helm owns the Behringer), so
+    #    the tile sat permanently yellow on "Computer Monitor" and meant
+    #    nothing. It only comes back if Helm is down (legacy fallback path).
+    if not helm_ok:
+        win = _windows_default_playback()
+        tiles.append({
+            "name": "Windows Speakers", "icon": "🪟",
+            "status": win["status"], "detail": win["name"],
+        })
 
     return tiles
 
@@ -680,11 +735,15 @@ def get_status():
         summary = mqtt_client.get_status_summary()
         # The Pirate Ship mic is not an MQTT device — attach its live probe
         # snapshot as a separate "mic" block (rendered as its own tile).
+        # 2026-09-17: "mics" = every character mic (ship + jungle), each tile
+        # lands in its own room; "mic" (ship only) kept for older readers.
         try:
-            from mic_probe import probe as mic_probe
-            summary["mic"] = mic_probe.snapshot()
+            from mic_probe import ALL_PROBES
+            summary["mics"] = [mp.snapshot() for mp in ALL_PROBES]
+            summary["mic"] = summary["mics"][0]
         except Exception as e:  # noqa: BLE001 - never let the mic break /status
             summary["mic"] = {"status": "unknown", "error": f"probe error: {e}"}
+            summary["mics"] = []
         # Systems group (infrastructure health) — first group on the dashboard.
         try:
             summary["systems"] = _build_systems(summary)

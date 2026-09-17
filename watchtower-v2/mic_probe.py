@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-mic_probe.py — Live Pirate Ship microphone health probe for WatchTower.
+mic_probe.py — Live character-microphone health probes for WatchTower.
 =======================================================================
+2026-09-17: now TWO probes — the Pirate Ship mic (RedBeard) and the Jungle
+mic (Evalee, USB TONOR renamed "Jungle Microphone" 09-12). Same class, one
+instance per mic; /api/status exposes them as "mic" (ship) and "mics" (all).
+
 The Pirate Ship mic is NOT an MQTT device (it doesn't PING/PONG like the
 ESP32s), so it can't ride the normal device-status pipeline. Instead this
 module opens the SAME physical mic Red Beard listens through and measures
@@ -41,6 +45,7 @@ logger = logging.getLogger(__name__)
 _AI_PATH = r"C:\Users\Alchemy\Desktop\EscapeRoom Pirate Original\AI Character System"
 
 MIC_SUBSTR = "Pirate Ship Microphone"
+JUNGLE_MIC_SUBSTR = "Jungle Microphone"
 _find_input_device_index = None
 try:
     if _AI_PATH not in sys.path and os.path.isdir(_AI_PATH):
@@ -50,6 +55,7 @@ try:
         INPUT_MIC_DEVICE_MAP,
     )
     MIC_SUBSTR = INPUT_MIC_DEVICE_MAP.get("redbeard", MIC_SUBSTR)
+    JUNGLE_MIC_SUBSTR = INPUT_MIC_DEVICE_MAP.get("evalee_jungle", JUNGLE_MIC_SUBSTR)
     logger.info("mic_probe: using AI device resolver, mic substr '%s'", MIC_SUBSTR)
 except Exception as e:  # noqa: BLE001 - any import/path problem -> fall back
     logger.warning("mic_probe: could not import AI mic config (%s); using default name", e)
@@ -71,10 +77,86 @@ def _rms(block: bytes) -> float:
     return (sum(s * s for s in samples) / n) ** 0.5
 
 
-class MicProbe:
-    """Background thread that keeps the Pirate Ship mic open and measures level."""
+# --- Shared PortAudio bookkeeping (device-list refresh) ---------------------
+# PortAudio reads the Windows device list ONCE, when the first PyAudio() in the
+# process is created, and keeps it until the LAST one is terminated. With two
+# probes one is almost always open, so a mic plugged in later would stay
+# "not found" until WatchTower restarted. A probe that can't find its mic
+# therefore looks from a fresh process, and if the mic is there it asks every
+# probe to close for a moment (_request_rescan) so the list is rebuilt.
+OUTSIDE_LOOK_SECS = 15.0
+_pa_cond = threading.Condition()
+_pa_active = 0        # PyAudio instances currently open in this process
+_rescan_gen = 0       # bumped on every refresh request; read loops watch it
+_draining = False     # True while waiting for every instance to close
 
-    def __init__(self):
+
+def _pa_open(pyaudio, stop_event):
+    """Create a PyAudio instance (waits out a refresh). -> (instance, gen)."""
+    global _pa_active, _draining
+    with _pa_cond:
+        while _draining and _pa_active > 0:
+            if stop_event.is_set():
+                return None, _rescan_gen
+            _pa_cond.wait(0.5)
+        _draining = False
+        _pa_active += 1
+        gen = _rescan_gen
+    try:
+        return pyaudio.PyAudio(), gen
+    except Exception:
+        with _pa_cond:
+            _pa_active -= 1
+            _pa_cond.notify_all()
+        raise
+
+
+def _pa_close(p):
+    global _pa_active
+    try:
+        p.terminate()
+    except Exception:  # noqa: BLE001
+        pass
+    with _pa_cond:
+        _pa_active = max(0, _pa_active - 1)
+        _pa_cond.notify_all()
+
+
+def _request_rescan():
+    global _rescan_gen, _draining
+    with _pa_cond:
+        _rescan_gen += 1
+        _draining = True
+        _pa_cond.notify_all()
+
+
+def _device_visible_outside(substr: str) -> bool:
+    """Does a FRESH process see a recording device with this name?"""
+    import subprocess
+    code = ("import sys, pyaudio; p = pyaudio.PyAudio(); t = sys.argv[1].lower(); "
+            "print(any(p.get_device_info_by_index(i).get('maxInputChannels', 0) > 0 "
+            "and t in p.get_device_info_by_index(i)['name'].lower() "
+            "for i in range(p.get_device_count()))); p.terminate()")
+    try:
+        out = subprocess.run(
+            [sys.executable, "-c", code, substr], capture_output=True, text=True,
+            timeout=20, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout
+        return "True" in out
+    except Exception as e:  # noqa: BLE001
+        logger.debug("mic_probe: outside look failed: %s", e)
+        return False
+
+
+class MicProbe:
+    """Background thread that keeps one character mic open and measures level."""
+
+    def __init__(self, substr=None, name="Pirate Ship Microphone", room="Ship Deck",
+                 listener="Red Beard"):
+        self._substr = substr or MIC_SUBSTR   # Windows device-name substring
+        self._name = name                     # tile label
+        self._room = room                     # dashboard room section
+        self._listener = listener             # which character hears through it
         self._lock = threading.Lock()
         self._thread = None
         self._stop = threading.Event()
@@ -90,15 +172,16 @@ class MicProbe:
         self._last_read_ts = 0.0    # monotonic time of last successful read
         self._error = None
         self._started = False        # has the loop completed at least one cycle
+        self._last_outside_look = 0.0  # last fresh-process device-list look
 
     # -- lifecycle -----------------------------------------------------------
     def start(self):
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
-        self._thread = threading.Thread(target=self._run, name="mic-probe", daemon=True)
+        self._thread = threading.Thread(target=self._run, name=f"mic-probe-{self._room}", daemon=True)
         self._thread.start()
-        logger.info("mic_probe: probe thread started")
+        logger.info("mic_probe: probe thread started for '%s'", self._substr)
 
     def stop(self):
         self._stop.set()
@@ -109,12 +192,12 @@ class MicProbe:
         idx = None
         if _find_input_device_index is not None:
             try:
-                idx = _find_input_device_index(MIC_SUBSTR)
+                idx = _find_input_device_index(self._substr)
             except Exception as e:  # noqa: BLE001
                 logger.debug("mic_probe: AI resolver error (%s); using local scan", e)
                 idx = None
         if idx is None:
-            target = MIC_SUBSTR.lower()
+            target = self._substr.lower()
             for i in range(p.get_device_count()):
                 info = p.get_device_info_by_index(i)
                 if info.get("maxInputChannels", 0) > 0 and target in info["name"].lower():
@@ -136,7 +219,9 @@ class MicProbe:
             p = None
             stream = None
             try:
-                p = pyaudio.PyAudio()
+                p, my_gen = _pa_open(pyaudio, self._stop)
+                if p is None:
+                    break
                 idx = self._resolve_index(p)
 
                 if idx is None:
@@ -145,11 +230,19 @@ class MicProbe:
                         self._live = False
                         self._device_index = None
                         self._device_name = None
-                        self._error = f"mic '{MIC_SUBSTR}' not found"
+                        self._error = f"mic '{self._substr}' not found"
                         self._level = 0.0
                         self._started = True
-                    p.terminate()
-                    self._sleep(REOPEN_BACKOFF)
+                    # PortAudio only re-scans USB devices when EVERY instance in
+                    # this process is closed, and the other probe keeps one open.
+                    # So look from a fresh process; if the mic is back, ask all
+                    # probes to let go for a moment so the list refreshes.
+                    now = time.monotonic()
+                    if now - self._last_outside_look >= OUTSIDE_LOOK_SECS:
+                        self._last_outside_look = now
+                        if _device_visible_outside(self._substr):
+                            logger.info("mic_probe: '%s' is back — refreshing the device list", self._substr)
+                            _request_rescan()
                     continue
 
                 name = p.get_device_info_by_index(idx)["name"]
@@ -167,9 +260,6 @@ class MicProbe:
                         self._error = f"stream won't open: {e}"
                         self._level = 0.0
                         self._started = True
-                    if p:
-                        p.terminate()
-                    self._sleep(REOPEN_BACKOFF)
                     continue
 
                 with self._lock:
@@ -180,8 +270,9 @@ class MicProbe:
                     self._error = None
                 logger.info("mic_probe: listening on '%s' (index %s)", name, idx)
 
-                # Read until told to stop or the stream faults.
-                while not self._stop.is_set():
+                # Read until told to stop, the stream faults, or another probe
+                # asks for a device-list refresh.
+                while not self._stop.is_set() and _rescan_gen == my_gen:
                     block = stream.read(CHUNK, exception_on_overflow=False)
                     level = _rms(block)
                     now = time.monotonic()
@@ -207,12 +298,12 @@ class MicProbe:
                         stream.close()
                 except Exception:  # noqa: BLE001
                     pass
-                try:
-                    if p is not None:
-                        p.terminate()
-                except Exception:  # noqa: BLE001
-                    pass
-            self._sleep(REOPEN_BACKOFF)
+                if p is not None:
+                    _pa_close(p)
+                # (a `continue` above still lands here first, then backs off)
+                rescanning = _draining
+                if not rescanning:
+                    self._sleep(REOPEN_BACKOFF)
 
     def _sleep(self, secs):
         # Interruptible sleep so stop() is responsive.
@@ -236,12 +327,13 @@ class MicProbe:
             # how long since we last had a real read (staleness guard)
             age = (now - self._last_read_ts) if self._last_read_ts else None
             return {
-                "name": "Pirate Ship Microphone",
+                "name": self._name,
+                "listener": self._listener,
                 "device_name": self._device_name,
                 "device_index": self._device_index,
                 "icon": "🎤",
                 "color": "#4A90D9",
-                "room": "Ship Deck",
+                "room": self._room,
                 "status": status,
                 "present": self._present,
                 "live": self._live,
@@ -254,5 +346,8 @@ class MicProbe:
             }
 
 
-# Module-level singleton the app wires up once.
-probe = MicProbe()
+# Module-level singletons the app wires up once.
+probe = MicProbe()   # Pirate Ship mic (RedBeard) — name kept for old imports
+jungle_probe = MicProbe(substr=JUNGLE_MIC_SUBSTR, name="Jungle Microphone",
+                        room="Jungle", listener="Evalee")
+ALL_PROBES = (probe, jungle_probe)

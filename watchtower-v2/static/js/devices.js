@@ -266,7 +266,7 @@
     return card;
   }
 
-  // ---- pirate-ship mic tile (live input level) -----------------------------
+  // ---- character mic tiles: ship + jungle (live input level) -----------------------------
   function micPct(mic) {
     const level = mic.level || 0;
     const fullScale = (mic.speak_ok || 600) * 1.5;
@@ -291,7 +291,7 @@
       <div class="dr-bar dr-bar-mic"><span class="dr-bar-fill" style="width:${pct}%;"></span></div>`;
     // A synthetic device object so the detail modal works for the mic too.
     const dev = {
-      type: "mic", status: mic.status === "offline" ? "offline" : "online", room: "Ship Deck",
+      type: "mic", status: mic.status === "offline" ? "offline" : "online", room: mic.room || "Ship Deck",
       topic: mic.topic && mic.topic !== "—" ? mic.topic : null, commands: [],
       error: mic.error, _micLevel: mic.level,
     };
@@ -322,10 +322,16 @@
       groups[room].push([name, dev]);
     }
 
-    // Make sure Ship Deck exists if we have a mic to show there
-    const mic = data.mic;
-    const hasMic = mic && mic.status;
-    if (hasMic && !groups["Ship Deck"]) { groups["Ship Deck"] = []; seen.push("Ship Deck"); }
+    // Character mics (Pirate Ship -> Ship Deck, Jungle -> Jungle): each tile
+    // lands in its own room; make sure that room section exists.
+    const mics = (data.mics && data.mics.length ? data.mics : (data.mic ? [data.mic] : []))
+      .filter(m => m && m.status);
+    const micsByRoom = {};
+    mics.forEach(m => {
+      const room = m.room || "Ship Deck";
+      (micsByRoom[room] = micsByRoom[room] || []).push(m);
+      if (!groups[room]) { groups[room] = []; seen.push(room); }
+    });
 
     // Ordered: preferred rooms first, then any extras alphabetically
     const ordered = seen.slice().sort((a, b) => {
@@ -337,8 +343,11 @@
       const list = groups[room];
       const cards = list.map(([name, dev]) => deviceCard(name, dev));
       let total = list.length;
-      if (hasMic && room === "Ship Deck") { cards.push(micCard(mic)); total += 1; }
-      const online = list.filter(([, d]) => d.status === "online").length;
+      let online = list.filter(([, d]) => d.status === "online").length;
+      (micsByRoom[room] || []).forEach(m => {
+        cards.push(micCard(m)); total += 1;
+        if (m.status === "online" || m.status === "idle") online += 1;
+      });
       container.appendChild(sectionEl(room, `${online}/${total} online`, cards));
     });
   }

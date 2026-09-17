@@ -304,6 +304,30 @@ def check_pirate_mic(ctx):
     return "fail", "'Pirate Ship Microphone' not in Windows recording devices"
 
 
+def check_jungle_mic(ctx):
+    """2026-09-17: Evalee's USB TONOR, renamed "Jungle Microphone" on 09-12.
+    Windows ties that name to the USB PORT — move the mic to another port and
+    it comes back as a plain "Microphone (N- TONOR...)" and Evalee quietly
+    falls back to the slow, echoey camera audio."""
+    try:
+        out = _powershell(
+            "$r = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }; "
+            "$d = $r | Where-Object { $_.Name -match 'Jungle Microphone' } | Select-Object -First 1; "
+            "if ($d) { $d.Name } else { 'MISSING|' + (($r | Where-Object { $_.Name -match 'TONOR' "
+            "-and $_.Name -notmatch 'Pirate Ship' } | ForEach-Object { $_.Name }) -join '; ') }",
+            timeout=15)
+    except Exception as e:  # noqa: BLE001
+        return "skip", f"audio device query failed: {e}"
+    if out and not out.startswith("MISSING"):
+        return "pass", out
+    stray = (out or "").partition("|")[2].strip()
+    if stray:
+        return "fail", ("'Jungle Microphone' not in Windows recording devices, but an unnamed "
+                        f"TONOR is plugged in: {stray} — the mic probably moved to a different "
+                        "USB port and lost its name")
+    return "fail", "'Jungle Microphone' not in Windows recording devices"
+
+
 def check_m3_app_volume(ctx):
     """Windows remembers Mystery.exe's mixer volume PER DEVICE and reapplies
     it forever — a 15% Ship slider silenced all M3 SFX across restarts."""
@@ -1214,6 +1238,15 @@ def build_checklist(mqtt_client) -> list:
               check_pirate_mic, ignorable=True,
               human_fix="Plug in / reseat the TONOR 'Pirate Ship Microphone' USB mic — or "
                         "swap in the backup mic — then re-run."),
+        Check("jungle_mic", "Jungle microphone present", "Audio", "advisory",
+              "How Evalee hears the players in the jungle. Without it she falls back "
+              "to the camera's microphone — she still works, but hears late and hears "
+              "her own echo, so answers get slow and confused.",
+              check_jungle_mic, ignorable=True,
+              human_fix="Plug the jungle TONOR USB mic back into the SAME USB port it was "
+                        "in (Windows remembers the 'Jungle Microphone' name per port). If it "
+                        "shows up as a plain 'Microphone (TONOR...)', it needs renaming — ask "
+                        "Claude to re-apply the Jungle Microphone name — then re-run."),
         Check("m3_app_volume", "M3 mixer volume not turned down", "Audio", "blocking",
               "Windows remembers a per-app volume slider forever — a slider once left at "
               "15% silenced every sound effect through multiple restarts.",
