@@ -187,9 +187,8 @@ def main():
     # Start the live Pirate Ship mic probe (opens the same device Red Beard
     # hears through and measures its input level for the dashboard mic tile).
     try:
-        from mic_probe import ALL_PROBES
-        for _mp in ALL_PROBES:   # Pirate Ship mic (RedBeard) + Jungle mic (Evalee)
-            _mp.start()
+        from mic_probe import start_all as start_mic_probes
+        start_mic_probes()   # Pirate Ship mic (RedBeard) + Jungle mic (Evalee)
         logger.info("Mic probes started")
     except Exception as e:  # noqa: BLE001 - mic probe must never block launch
         logger.warning(f"Mic probe failed to start: {e}")
