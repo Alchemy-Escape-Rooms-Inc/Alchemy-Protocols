@@ -21,6 +21,7 @@ import os
 import csv
 import sys
 import json
+import re
 import time
 import socket
 import shutil
@@ -786,6 +787,13 @@ def check_prop_positions(ctx):
                           f"'{state['payload'][:40]}' {int(state['age_s'] / 60)} min ago)")
             continue
         checked += 1
+        rej = row.get("reject_re")
+        if rej and re.search(rej, state["payload"], re.I):
+            bucket.append(f"{row['label']} = '{state['payload'][:40]}' "
+                          f"(still SOLVED from the last game — send PUZZLE_RESET)")
+            continue
+        if rej:
+            continue
         if row["expect"].lower() not in state["payload"].lower():
             shown = state["payload"]
             if "|" in shown:

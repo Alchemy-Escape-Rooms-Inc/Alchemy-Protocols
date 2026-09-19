@@ -232,6 +232,14 @@ PREGAME_PROP_STATES = [
     # the compasses are still physically aligned — exactly what we're catching).
     # Driftwood: "ACTIVE | Sensors: ..." vs "SOLVED | ..." every 60s.
     {"label": "Compass trio",    "topic": "MermaidsTale/CompassTrio/status",            "expect": "unsolved"},
+    # MiniBarrels (rum recipe): status is ONLINE / HEARTBEAT:RUNNING:... when
+    # reset, SOLVED / HEARTBEAT:SOLVED:... after a solve. 2026-09-18 play: the
+    # story's reset never reached the board (wrong topics), so it sat SOLVED
+    # with all five lights green from the previous game and guests lost 22 min.
+    # "reject_re" = regex that must NOT match (UNSOLVED-style substrings make a
+    # plain "expect" useless here).
+    {"label": "Mini barrels (rum recipe)", "topic": "MermaidsTale/MiniBarrels/status",
+     "reject_re": r"(^|:)SOLVED(:|$)"},
     {"label": "Driftwood",       "topic": "MermaidsTale/Driftwood/status",              "expect": "active"},
     # MonkeyDoorsTotems: the board publishes NO door-position topic (verified
     # against the full 2026-07-24 wire logs — only status/log heartbeats, PONG,

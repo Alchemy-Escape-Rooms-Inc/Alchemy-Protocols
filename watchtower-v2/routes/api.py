@@ -9,6 +9,7 @@ import json
 import subprocess
 import requests
 import logging
+import re
 import time
 from datetime import datetime
 from flask import Blueprint, jsonify, request
@@ -468,12 +469,16 @@ def _pregame_checks() -> dict:
         state = pre["props"].get(row["topic"])
         if state is None:
             continue  # board hasn't reported since WatchTower started — device tile covers it
-        if row["expect"].lower() not in state["payload"].lower():
+        rej = row.get("reject_re")
+        bad = (bool(re.search(rej, state["payload"], re.I)) if rej
+               else row["expect"].lower() not in state["payload"].lower())
+        if bad:
             age = f" ({int(state['age_s'])}s ago)" if state["age_s"] > 60 else ""
+            want = "not SOLVED (send PUZZLE_RESET)" if rej else f"'{row['expect']}'"
             issues.append({
                 "icon": "🚪", "name": f"{row['label']} not in start position",
                 "detail": f"{row['topic']} = '{state['payload'][:60]}'{age} — expected "
-                          f"'{row['expect']}'.",
+                          f"{want}.",
             })
 
     issues.extend(_unreal_check())
