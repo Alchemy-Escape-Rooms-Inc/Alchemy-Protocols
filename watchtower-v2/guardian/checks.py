@@ -329,6 +329,34 @@ def check_jungle_mic(ctx):
     return "fail", "'Jungle Microphone' not in Windows recording devices"
 
 
+def check_ship_echo_bench(ctx):
+    """2026-09-19: RedBeard answered his OWN echo every line of a game because
+    the ship echo canceller's timing was a guess that was never measured. The
+    AI now keeps listen-through OFF (deaf while he talks) until
+    bench_aec.py has been run in a quiet ship and its result file says LOCKED.
+    This row is the reminder nobody has to remember."""
+    p = os.path.join(config.AI_DIR, "bench_aec_result.json")
+    if not os.path.exists(p):
+        return "fail", ("bench_aec.py has NEVER been run — RedBeard cannot hear players while he "
+                        "is talking (listen-through off). Run it once in a quiet ship.")
+    try:
+        with open(p, encoding="utf-8") as fh:
+            r = json.load(fh)
+    except Exception as e:  # noqa: BLE001
+        return "fail", f"bench_aec_result.json unreadable: {e}"
+    age = (time.time() - os.path.getmtime(p)) / 86400.0
+    v = r.get("verdict")
+    if v == "LOCKED":
+        if age > 45:
+            return "fail", (f"bench passed ({r.get('erle_measured_db')} dB) but {age:.0f} days ago — the AI "
+                            "ignores results older than 45 days; re-run bench_aec.py")
+        return "pass", (f"LOCKED {r.get('erle_measured_db')} dB, delay {r.get('delay_ms')} ms, "
+                        f"AEC_PLAY_DELAY_MS={r.get('play_delay_ms')} ({r.get('ts')}, {age:.0f} d ago) — "
+                        "ship listen-through ON at next AI launch")
+    return "fail", (f"last bench ({r.get('ts')}) = {v}: echo reduced only {r.get('erle_measured_db')} dB "
+                    "— canceller not usable in this room; listen-through stays OFF")
+
+
 def check_m3_app_volume(ctx):
     """Windows remembers Mystery.exe's mixer volume PER DEVICE and reapplies
     it forever — a 15% Ship slider silenced all M3 SFX across restarts."""
@@ -1255,6 +1283,18 @@ def build_checklist(mqtt_client) -> list:
                         "in (Windows remembers the 'Jungle Microphone' name per port). If it "
                         "shows up as a plain 'Microphone (TONOR...)', it needs renaming — ask "
                         "Claude to re-apply the Jungle Microphone name — then re-run."),
+        Check("ship_echo_bench", "Ship echo-cancel bench run + passed", "Audio", "advisory",
+              "RedBeard's mic can stay open while he talks only if his own voice is "
+              "subtracted first, and that needs one measured number (voice-to-mic delay). "
+              "Until the bench measures it, he is deaf while speaking — safe, but players "
+              "talking over him are not heard. (09-19: an unmeasured guess made him answer "
+              "his own echo all game.)",
+              check_ship_echo_bench, ignorable=True,
+              human_fix="Quiet ship, Helm running: open a terminal and run  "
+                        "python \"C:\\Users\\Alchemy\\Desktop\\EscapeRoom Pirate Original\\AI Character System\\bench_aec.py\"  "
+                        "(4 s of noise bursts on the ship speaker). If it prints LOCKED the AI "
+                        "switches listen-through on by itself at its next launch; if NOT "
+                        "CANCELLING, tell Claude — the canceller needs a different fix."),
         Check("m3_app_volume", "M3 mixer volume not turned down", "Audio", "blocking",
               "Windows remembers a per-app volume slider forever — a slider once left at "
               "15% silenced every sound effect through multiple restarts.",
