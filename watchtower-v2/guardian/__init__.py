@@ -452,7 +452,7 @@ def _launch_bat(path, extra_env=None):
     )
 
 
-def start_game(run_id):
+def start_game(run_id, ai_system=None):
     """The gate. Refuses unless the given run finished READY within the
     freshness window. There is deliberately NO override here — fix the
     blockers or don't start."""
@@ -484,14 +484,20 @@ def start_game(run_id):
                 and it["detail"].startswith("BENCHED by operator")):
             extra_env = {"WT_ROUTING_BENCH_SKIP": "1"}
             break
+    # 2026-09-22: AI character program switch (Parley V2 vs the old client).
+    ai = (ai_system or config.AI_SYSTEM_DEFAULT or "v1").lower()
+    if ai not in ("v1", "v2"):
+        return False, f"Unknown AI system '{ai_system}' (v1 or v2).", 400
+    extra_env = {**(extra_env or {}), "AI_SYSTEM": ai}
+    ai_label = "Parley V2" if ai == "v2" else "old AI client (v1)"
     _launch_bat(config.START_BAT, extra_env)
     db.add_guardian_action("game_start", config.START_BAT, True,
-                           f"launched off passing run {run_id}", run_id)
-    logger.info(f"Guardian: START_ESCAPE_ROOM.bat fired (run {run_id})")
+                           f"launched off passing run {run_id}, AI={ai}", run_id)
+    logger.info(f"Guardian: START_ESCAPE_ROOM.bat fired (run {run_id}, AI_SYSTEM={ai})")
     _clear_bench_after_start(run_id)
-    return True, ("Launcher fired. Watch its console window on the game PC — it has "
-                  "interactive steps (mic check, routing verify). Systems will come "
-                  "online on the dashboard over the next ~3 minutes."), 200
+    return True, (f"Launcher fired with the AI characters on {ai_label}. Watch its console "
+                  "window on the game PC — it has interactive steps (mic check, routing "
+                  "verify). Systems will come online on the dashboard over the next ~3 minutes."), 200
 
 
 def stop_game():

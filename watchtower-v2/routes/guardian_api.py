@@ -97,7 +97,7 @@ def apply_fix():
 @guardian_api.route("/game/start", methods=["POST"])
 def game_start():
     data = request.get_json() or {}
-    ok, message, code = guardian.start_game(data.get("run_id"))
+    ok, message, code = guardian.start_game(data.get("run_id"), data.get("ai_system"))
     return jsonify({"ok": ok, "message": message}), code
 
 

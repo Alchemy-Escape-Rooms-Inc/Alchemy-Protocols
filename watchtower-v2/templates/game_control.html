@@ -12,6 +12,8 @@
 .gc-verdict { font-size:1.5rem; font-weight:800; }
 .gc-verdict-sub { font-size:0.9rem; opacity:0.85; margin-top:4px; }
 .gc-buttons { display:flex; gap:12px; flex-wrap:wrap; }
+.gc-ai-pick { margin-top: 8px; font-size: 0.9em; opacity: 0.85; }
+.gc-ai-pick select { margin-left: 6px; padding: 2px 6px; }
 .gc-btn { border:none; border-radius:10px; padding:16px 28px; font-size:1.05rem;
     font-weight:800; cursor:pointer; white-space:nowrap; font-family:inherit; }
 .gc-btn:disabled { opacity:0.4; cursor:not-allowed; }
@@ -127,6 +129,15 @@
         <button id="btn-check" class="gc-btn gc-btn-check" onclick="runChecklist()">📋 Run Pre-Game Checklist</button>
         <button id="btn-start" class="gc-btn gc-btn-start" onclick="startGame()" disabled>🚀 START GAME</button>
         <button id="btn-stop"  class="gc-btn gc-btn-stop"  onclick="stopGame()">🛑 STOP GAME</button>
+    </div>
+    <!-- 2026-09-22: which AI character program START GAME launches. Parley (V2) is the
+         rebuilt one-process system; the old client stays one click away for rollback. -->
+    <div class="gc-ai-pick">
+        <label for="ai-system">AI characters:</label>
+        <select id="ai-system">
+            <option value="v2" selected>Parley V2 (new)</option>
+            <option value="v1">Old AI program (v1)</option>
+        </select>
     </div>
 </div>
 
@@ -591,7 +602,8 @@ function startGame() {
     btn.disabled = true;
     btn.textContent = "⏳ Launching…";
     fetch("/api/game/start", {method:"POST", headers:{"Content-Type":"application/json"},
-           body: JSON.stringify({run_id: latestRun.run_id})})
+           body: JSON.stringify({run_id: latestRun.run_id,
+                                 ai_system: (document.getElementById("ai-system") || {}).value || "v2"})})
         .then(r => r.json().then(j => ({ok: r.ok, ...j})))
         .then(res => {
             showMsg(res.message, !res.ok);

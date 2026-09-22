@@ -78,6 +78,10 @@ GUARDIAN_MIN_FREE_GB = 10           # C: free-space floor (advisory)
 SCRIPT_DIR = r"C:\Users\Alchemy\Desktop\EscapeRoom Pirate Original"
 AI_DIR = SCRIPT_DIR + r"\AI Character System"
 START_BAT = SCRIPT_DIR + r"\START_ESCAPE_ROOM.bat"
+# 2026-09-22: which AI character program the Start Game button launches. "v2" = Parley
+# (new, one process), "v1" = the old ai_launcher client. The /game page has a
+# picker that defaults to this; the bat itself defaults to v1 when nothing is set.
+AI_SYSTEM_DEFAULT = "v2"
 STOP_BAT = SCRIPT_DIR + r"\STOP_ESCAPE_ROOM.bat"
 MYTHRIC_PATH = r"C:\Program Files (x86)\Mythric Mystery Master\bin\Mystery.exe"
 AMT_XML_LIVE = r"C:\Program Files (x86)\Mythric Mystery Master\stories\AMT\AMT.xml"
