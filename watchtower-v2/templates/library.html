@@ -568,6 +568,14 @@ function showSection(name, btn) {
     if (name === "manifests") loadManifests();
 }
 
+// OTA became MANDATORY 2026-09-22 (mqtt-protocol.md). Green = ArduinoOTA in
+// firmware (declared in MANIFEST.h or found in the source by the parser).
+function otaBadge(m) {
+    const on = String(m.ota_enabled || "").toLowerCase() === "yes";
+    if (on) return `<span style="color:#34D399;font-weight:700">&#10004; yes</span>${m.ota_port ? ` <span style="color:#3A3F5C">:${m.ota_port}</span>` : ""}`;
+    return `<span style="color:#F87171;font-weight:700">&#10006; REQUIRED</span> <span style="color:#3A3F5C">USB-only</span>`;
+}
+
 function loadManifests() {
     fetch("/api/manifests").then(r => r.json()).then(data => {
         const container = document.getElementById("manifests-list");
@@ -582,7 +590,13 @@ function loadManifests() {
         const banner = document.getElementById("wiring-live-banner");
         const count = document.getElementById("wiring-live-count");
         if (banner) { banner.style.display = "flex"; count.textContent = data.manifests.length + " device" + (data.manifests.length !== 1 ? "s" : ""); }
-        container.innerHTML = '<div class="manifests-grid">' + data.manifests.map(m => `
+        const otaYes = data.manifests.filter(m => String(m.ota_enabled || "").toLowerCase() === "yes").length;
+        const otaNo  = data.manifests.length - otaYes;
+        const otaBanner = `<div style="margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid ${otaNo ? "#7F1D1D" : "#065F46"};background:${otaNo ? "#2A0F12" : "#0B2A20"};font-family:'Inter',sans-serif;font-size:12px;color:#C4B5FD">
+            <strong>Over-the-air updates are mandatory</strong> (MQTT Protocol, 2026-09-22) &mdash;
+            <span style="color:#34D399">${otaYes} board${otaYes === 1 ? "" : "s"} ready</span>${otaNo ? `, <span style="color:#F87171">${otaNo} still USB-only</span> (add ArduinoOTA at next firmware touch)` : ""}.
+        </div>`;
+        container.innerHTML = otaBanner + '<div class="manifests-grid">' + data.manifests.map(m => `
             <div class="manifest-card">
                 <h3>${m.device_name}</h3>
                 <div class="manifest-grid">
@@ -592,6 +606,7 @@ function loadManifests() {
                     <div class="manifest-item"><span class="m-label">Build</span><span class="m-val">${m.build_status || "—"}</span></div>
                     <div class="manifest-item"><span class="m-label">Health</span><span class="m-val">${m.code_health || "—"}</span></div>
                     <div class="manifest-item"><span class="m-label">Last Sync</span><span class="m-val">${m.last_synced ? m.last_synced.split("T")[0] : "Never"}</span></div>
+                    <div class="manifest-item"><span class="m-label">OTA (mandatory)</span><span class="m-val">${otaBadge(m)}</span></div>
                 </div>
                 ${m.description ? `<p class="manifest-desc">${m.description}</p>` : ""}
                 ${m.repo_url ? `<a href="${m.repo_url}" target="_blank" style="font-size:11px;color:#818CF8;text-decoration:none;margin-top:10px;display:block">View Repo ↗</a>` : ""}

@@ -134,6 +134,9 @@ const char* WIFI_PASSWORD = manifest::WIFI_PASSWORD;
 @BROKER_IP                  — MQTT broker IP address
 @BROKER_PORT                — MQTT broker port
 @HEARTBEAT_MS               — Heartbeat interval in milliseconds
+@OTA_ENABLED                — yes | no  (MANDATORY yes on every Wi-Fi board since 2026-09-22, see mqtt-protocol.md)
+@OTA_HOSTNAME               — ArduinoOTA hostname, identical to DEVICE_NAME
+@OTA_PORT                   — 3232 (ESP32/S3) or 8266 (ESP8266)
 @SUBSCRIBE                  — Topic subscriptions (one per line)
 @PUBLISH                    — Topic publications (one per line)
 @COMMAND                    — Supported commands (one per line)

@@ -69,6 +69,9 @@ def init_db(db_path):
                 known_quirks TEXT,
                 wiring_diagram TEXT,
                 repo_url TEXT,
+                ota_enabled TEXT,
+                ota_hostname TEXT,
+                ota_port INTEGER,
                 last_synced TEXT,
                 raw_manifest TEXT
             );
@@ -121,6 +124,21 @@ def init_db(db_path):
             CREATE INDEX IF NOT EXISTS idx_mqtt_timestamp ON mqtt_log(timestamp);
             CREATE INDEX IF NOT EXISTS idx_manifest_device ON device_manifests(device_name);
         """)
+        _ensure_columns(db, "device_manifests", {
+            # 2026-09-22: OTA became mandatory (mqtt-protocol.md)
+            "ota_enabled":  "TEXT",
+            "ota_hostname": "TEXT",
+            "ota_port":     "INTEGER",
+        })
+
+
+def _ensure_columns(db, table: str, columns: dict):
+    """Add any missing columns to an existing table (CREATE IF NOT EXISTS
+    never alters a table that already exists)."""
+    have = {row[1] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+    for name, ctype in columns.items():
+        if name not in have:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ctype}")
 
 
 @contextmanager

@@ -36,7 +36,7 @@ Every WatchTower-compliant device must support all four of these commands:
 | Command | Response | Description |
 |---|---|---|
 | `PING` | `PONG` | Health check — System Checker sends this periodically |
-| `STATUS` | State string with diagnostics | Full status report (state, uptime, RSSI, version, etc.) |
+| `STATUS` | State string with diagnostics | Full status report (state, uptime, RSSI, version, **IP**, etc.) |
 | `RESET` | `OK` then reboot | Software reboot — stops all actuators first |
 | `PUZZLE_RESET` | `OK` | Reset game state without rebooting — re-read sensors, sync state |
 
@@ -48,10 +48,55 @@ Every device must follow this sequence on power-on or reboot:
 
 1. Initialize hardware (pins, sensors, motors)
 2. Connect to WiFi (`AlchemyGuest`)
-3. Connect to MQTT broker (`10.1.10.115:1883`)
-4. Subscribe to `MermaidsTale/{DeviceName}/command`
-5. Publish `ONLINE` on `/status`
-6. Begin heartbeat loop
+3. Start the OTA listener (`ArduinoOTA.begin()`, see below) - **mandatory**
+4. Connect to MQTT broker (`10.1.10.115:1883`)
+5. Subscribe to `MermaidsTale/{DeviceName}/command`
+6. Publish `ONLINE` on `/status` and a boot line on `/log` that includes the board's IP
+7. Begin heartbeat loop
+
+---
+
+## Over-the-Air Updates (MANDATORY since 2026-09-22)
+
+Every Wi-Fi board (ESP32, ESP32-S3, ESP8266) **must** accept firmware updates over the network via `ArduinoOTA`. Once a board is installed in a room, the USB cable is never needed again: a new build is pushed over Wi-Fi and the board reboots into it, exactly like a USB flash.
+
+| Requirement | Value |
+|---|---|
+| **Library** | `ArduinoOTA` (bundled with the esp32 and esp8266 Arduino cores) |
+| **Hostname** | `{DeviceName}` - identical to `DEVICE_NAME` |
+| **Password** | Same as the Wi-Fi password (see *Broker & Network* above); boards are only reachable on the guest LAN |
+| **Port** | `3232` (ESP32 / S3) or `8266` (ESP8266) - library defaults, do not change |
+| **Where in code** | `ArduinoOTA.begin()` right after Wi-Fi connects; `ArduinoOTA.handle()` every `loop()` |
+| **On start** | `onStart` must stop every actuator (motor, relay, pump, solenoid) and publish `OTA update starting` on `/log` |
+| **Discoverability** | `STATUS` reply must include `IP:x.x.x.x`; the boot line on `/log` must include the IP |
+| **Manifest** | `OTA_ENABLED "yes"`, `OTA_HOSTNAME "{DeviceName}"`, `OTA_PORT 3232` or `8266` in `MANIFEST.h` |
+
+Reference implementation (ESP32 / S3 and ESP8266, drop in as-is):
+
+```cpp
+#include <ArduinoOTA.h>
+
+void setupOTA() {                         // call once, after Wi-Fi is up
+  ArduinoOTA.setHostname(DEVICE_NAME);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.onStart([]() { stopAllActuators(); mqttLogf("OTA update starting"); });
+  ArduinoOTA.onEnd([]()   { Serial.println("OTA done, rebooting"); });
+  ArduinoOTA.onError([](ota_error_t e) { Serial.printf("OTA error %u\n", e); });
+  ArduinoOTA.begin();
+}
+// in loop():  ArduinoOTA.handle();
+```
+
+Flashing over the air (after the one-time USB flash that puts OTA on the board):
+
+```
+arduino-cli compile --fqbn <fqbn> --export-binaries <sketch dir>
+arduino-cli upload  --fqbn <fqbn> -p <board IP> --upload-field password=<Wi-Fi password> <sketch dir>
+```
+
+`arduino-cli board list` shows OTA-ready boards as **network ports** with their IP. Get a board's IP from its `STATUS` reply or the WatchTower device card.
+
+**Compliance:** a board without OTA is at most `partial` WatchTower compliance. The Device Manifests page marks every board **OTA yes / OTA REQUIRED**. Existing boards get OTA added at their next firmware touch; new boards ship with it from the first flash.
 
 ---
 

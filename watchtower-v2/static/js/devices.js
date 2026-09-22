@@ -430,6 +430,8 @@
           ["Firmware", manifest.firmware_version],
           ["Board", manifest.board_type],
           ["Build", manifest.build_status],
+          ["OTA (mandatory)", String(manifest.ota_enabled || "").toLowerCase() === "yes"
+              ? `yes${manifest.ota_port ? " :" + manifest.ota_port : ""}` : "NO - USB-only, ArduinoOTA required"],
           ["Commands", manifest.supported_commands],
           ["Listens on", manifest.subscribe_topics],
           ["Publishes", manifest.publish_topics],

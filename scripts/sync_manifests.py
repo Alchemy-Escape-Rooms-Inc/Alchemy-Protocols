@@ -75,9 +75,12 @@ FIELD_MAP = {
     "COMPONENTS":             "components",
     "KNOWN_QUIRKS":           "known_quirks",
     "REPO_URL":               "repo_url",
+    "OTA_ENABLED":            "ota_enabled",
+    "OTA_HOSTNAME":           "ota_hostname",
+    "OTA_PORT":               "ota_port",
 }
 
-INT_FIELDS = {"broker_port", "heartbeat_ms"}
+INT_FIELDS = {"broker_port", "heartbeat_ms", "ota_port"}
 
 # =============================================================================
 # "Fancy" manifest format (manifest-protocol.md style)
@@ -114,6 +117,9 @@ FANCY_HEADER_MAP = {
     "BROKER_IP":        "broker_ip",
     "BROKER_PORT":      "broker_port",
     "HEARTBEAT_MS":     "heartbeat_ms",
+    "OTA_ENABLED":      "ota_enabled",
+    "OTA_HOSTNAME":     "ota_hostname",
+    "OTA_PORT":         "ota_port",
 }
 
 # "// @TAG" trailing a code line; value = string literal or integer in the code
@@ -124,6 +130,9 @@ FANCY_TRAILING_MAP = {
     "BROKER_PORT":      "broker_port",
     "HEARTBEAT_MS":     "heartbeat_ms",
     "TOPIC_PREFIX":     None,   # recognized but not stored
+    "OTA_HOSTNAME":     "ota_hostname",
+    "OTA_PORT":         "ota_port",
+    "OTA_PASSWORD":     None,   # never stored
 }
 
 # Repeating "// @TAG: value | description" lines, comma-joined into one column
@@ -234,9 +243,58 @@ def parse_manifest(path: str) -> dict | None:
     if "device_name" not in data:
         print(f"  ⚠️  No DEVICE_NAME in {path} — skipping")
         return None
-
+    # OTA is MANDATORY (mqtt-protocol.md, 2026-09-22). The manifest may
+    # declare OTA_ENABLED; if it doesn't, look at the firmware next to it
+    # for ArduinoOTA so the WatchTower page shows the truth for every board.
+    if "ota_enabled" not in data:
+        data["ota_enabled"] = "yes" if _source_has_ota(os.path.dirname(path)) else "no"
+    data["ota_enabled"] = str(data["ota_enabled"]).strip().lower()
+    if data["ota_enabled"] in ("true", "1", "on"):
+        data["ota_enabled"] = "yes"
+    if data["ota_enabled"] == "yes" and "ota_hostname" not in data:
+        data["ota_hostname"] = data["device_name"]
     data["raw_manifest"] = raw[:4000]  # store truncated raw text
     return data
+
+
+def _source_has_ota(manifest_dir: str) -> bool:
+    """True if any .ino/.cpp/.h in the manifest's own repo calls ArduinoOTA.begin().
+
+    Scans from the manifest's folder up to the repo root (first parent that
+    holds a .git) and never beyond it - a MANIFEST.h sitting at a repo root
+    must not pick up a sibling repo's firmware."""
+    repo_root = manifest_dir
+    for _ in range(4):
+        if os.path.isdir(os.path.join(repo_root, ".git")):
+            break
+        parent = os.path.dirname(repo_root)
+        if parent == repo_root or os.path.isfile(os.path.join(parent, "MANIFEST.h")):
+            break
+        if any(os.path.isdir(os.path.join(parent, d, ".git"))
+               for d in os.listdir(parent) if d != os.path.basename(repo_root)):
+            break   # parent is a folder OF repos, not a repo
+        repo_root = parent
+    roots = [repo_root]
+    seen = set()
+    for root_dir in roots:
+        for root, dirs, files in os.walk(root_dir):
+            dirs[:] = [d for d in dirs if d not in {".git", "build", ".pio", "node_modules"}]
+            if root.count(os.sep) - root_dir.count(os.sep) > 3:
+                continue
+            for fname in files:
+                if not fname.endswith((".ino", ".cpp", ".h")):
+                    continue
+                fpath = os.path.join(root, fname)
+                if fpath in seen:
+                    continue
+                seen.add(fpath)
+                try:
+                    with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                        if "ArduinoOTA.begin" in f.read():
+                            return True
+                except OSError:
+                    pass
+    return False
 
 
 def sync_manifest(manifest_data: dict, dry_run: bool = False) -> bool:

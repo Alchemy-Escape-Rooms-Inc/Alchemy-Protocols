@@ -431,6 +431,8 @@ All ESP32 devices in the "A Mermaid's Tale" room follow the Alchemy MQTT Protoco
 | `RESET` | `OK` then reboot | Software reboot — stops all actuators first |
 | `PUZZLE_RESET` | `OK` | Reset game state without rebooting — re-read sensors, sync state |
 
+**Over-the-Air Updates (MANDATORY since 2026-09-22):** every Wi-Fi board runs `ArduinoOTA` (hostname = DeviceName, password = Wi-Fi password, port 3232 ESP32 / 8266 ESP8266) so firmware is pushed over the LAN after the one-time USB flash. `STATUS` replies include `IP:x.x.x.x`. Boards without OTA are at most `partial` compliance. Full spec: [`mqtt-protocol.md`](mqtt-protocol.md).
+
 **Standard Boot Sequence:**
 1. Initialize hardware (pins, sensors, motors)
 2. Connect to WiFi (`AlchemyGuest`)
