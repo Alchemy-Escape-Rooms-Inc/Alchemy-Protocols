@@ -910,6 +910,19 @@ def check_ai_launcher(ctx):
     if not mc or not mc.connected:
         return "skip", "WatchTower's MQTT is down — can't hear the launcher heartbeat"
 
+    # Parley (2026-09-22): the new AI program has NO launcher — it is one
+    # always-on process that receives GameStart itself. A fresh ok=true
+    # AI/status beat is the whole proof; the launcher logic below is for the
+    # old program only.
+    st = mc.get_system_signals().get("ai_status", {})
+    st_age = st.get("age_s")
+    st_data = st.get("detail") if isinstance(st.get("detail"), dict) else None
+    if (st_data is not None and st_age is not None and st_age <= config.AI_STATUS_FRESH_S
+            and st_data.get("ok") is True):
+        return "pass", (f"Parley v{st_data.get('version', '?')} alive — phase "
+                        f"{st_data.get('phase', '?')}, status beat {int(st_age)}s ago "
+                        "(no launcher needed)")
+
     def _age():
         return mc.get_system_signals().get("ai_launcher", {}).get("age_s")
 
@@ -935,6 +948,74 @@ def check_ai_launcher(ctx):
                         "can start), and the START bat launches the AI at step [10/10]")
     return "fail", ("NOT RUNNING while the game stack is up — a game started now would run "
                     "with NO AI characters (RedBeard/Evalee silent the whole game)")
+
+
+def _parley_result_file(path: str, max_age_days: float):
+    """Load one of Parley's bench JSON files. Returns (data, age_days, err):
+    err is a ready-made fail detail when the file is missing/unreadable/stale."""
+    label = os.path.basename(path)
+    if not os.path.exists(path):
+        return None, None, f"{label} not found — Parley's bench has never written it"
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except Exception as e:  # noqa: BLE001
+        return None, None, f"{label} unreadable: {e}"
+    if not isinstance(data, dict):
+        return None, None, f"{label} is not a JSON object"
+    ts = data.get("ts")
+    try:
+        from datetime import datetime
+        age_days = (time.time() - datetime.fromisoformat(str(ts)).timestamp()) / 86400.0
+    except Exception:  # noqa: BLE001
+        age_days = (time.time() - os.path.getmtime(path)) / 86400.0
+    if age_days > max_age_days:
+        return data, age_days, (f"{label} is {age_days:.1f} days old (limit {max_age_days:g}) "
+                                f"— last written {ts}")
+    return data, age_days, None
+
+
+def check_parley_bench(ctx):
+    """Parley (2026-09-22) proves itself with its own bench suite (config,
+    voice clock, queue, clock, game, mic) and writes bench/last_run.json.
+    Fresh + passing = the program that will run tonight's show has been
+    exercised end to end this week."""
+    data, age, err = _parley_result_file(config.PARLEY_BENCH_RESULT, config.PARLEY_BENCH_MAX_AGE_D)
+    if err:
+        return "fail", err
+    results = data.get("results") or []
+    failed = [r.get("bench", "?") for r in results if not r.get("pass")]
+    if data.get("pass") is not True or failed:
+        return "fail", (f"bench suite FAILED ({data.get('ts')}, {age:.1f} d ago): "
+                        + (", ".join(failed) if failed else "pass flag false"))
+    kind = "quick" if data.get("quick") else "full"
+    secs = sum(float(r.get("seconds") or 0) for r in results)
+    return "pass", (f"{len(results)} benches passed ({kind}, {secs:.0f}s) — "
+                    f"{data.get('ts')}, {age:.1f} d ago")
+
+
+def check_parley_mics(ctx):
+    """Parley's mic self-test (bench/mic_selftest.json): every character mic
+    (ship / jungle / cove) opened and delivered audio at the expected cadence.
+    A quiet room can read as ok=false on level alone — re-run with someone
+    talking near the mic before assuming the mic is dead."""
+    data, age, err = _parley_result_file(config.PARLEY_MIC_SELFTEST, config.PARLEY_MIC_MAX_AGE_D)
+    if err:
+        return "fail", err
+    rooms = data.get("rooms") or {}
+    if not rooms:
+        return "fail", f"mic_selftest.json lists no rooms ({data.get('ts')})"
+    bad = []
+    for room, r in sorted(rooms.items()):
+        r = r or {}
+        if not r.get("ok"):
+            why = r.get("error") or f"peak_rms {r.get('peak_rms')}"
+            bad.append(f"{room} ({r.get('device') or 'no device'}: {why})")
+    if bad:
+        return "fail", (f"{len(bad)}/{len(rooms)} mic(s) not OK — " + "; ".join(bad)
+                        + f" — tested {data.get('ts')}, {age:.1f} d ago")
+    return "pass", (f"{len(rooms)}/{len(rooms)} mics OK ({', '.join(sorted(rooms))}) — "
+                    f"{data.get('ts')}, {age:.1f} d ago")
 
 
 # Unreal publishes MermaidsTale/Unreal/RoomStatus every 5s ({"map","audioRoom"}).
@@ -1212,6 +1293,24 @@ def build_checklist(mqtt_client) -> list:
               "Runs the local face-animation container. The launcher can start Docker "
               "Desktop itself, it just adds ~2 min to launch.",
               check_docker),
+        # Parley (2026-09-22): the new AI character program's own proof files.
+        Check("parley_bench", "Parley bench suite passed this week", "Connections", "advisory",
+              "Parley (the AI character program) tests itself: config, voice clock, "
+              "beat queue, game clock, a whole simulated game, and the mics. A fresh "
+              "passing run means the program that runs tonight's characters was "
+              "exercised end to end. Missing or stale = nobody has proven it lately.",
+              check_parley_bench, ignorable=True,
+              human_fix="In a console: python \"C:\\Users\\Alchemy\\Desktop\\EscapeRoom Pirate "
+                        "Original\\Parley\\bench\\bench_all.py\" — fix anything it reports, "
+                        "then re-run the checklist."),
+        Check("parley_mics", "Parley mic self-test (ship / jungle / cove)", "Connections", "advisory",
+              "Parley opened each character microphone and heard audio flowing. A room "
+              "that reads FAIL usually means the mic is unplugged or renamed — or the "
+              "room was just silent during the test.",
+              check_parley_mics, ignorable=True,
+              human_fix="Check the listed mic is plugged in and Windows still calls it by "
+                        "its room name, then re-run Parley's mic bench (bench_mic.py) with "
+                        "someone talking near it, then re-run the checklist."),
 
         # Files & Builds
         Check("game_build", "Packaged game build on disk", "Files & Builds", "blocking",
@@ -1344,15 +1443,19 @@ def build_checklist(mqtt_client) -> list:
               "Mystery.exe's audio silently dies on long runs. Past 12 hours it must be "
               "restarted before a game.",
               check_m3_freshness, fix_id="restart_m3"),
-        Check("ai_launcher", "AI Character program (launcher) alive", "Game Systems", "blocking",
-              "The AI launcher is what boots RedBeard and Evalee the moment a game "
-              "starts. If it's dead or deaf, the start signal fires into the void and "
-              "the whole game runs with SILENT characters — no one notices until "
-              "guests are mid-game (this exact failure happened on 7/15).",
+        Check("ai_launcher", "AI program (launcher or Parley) alive", "Game Systems", "blocking",
+              "The AI program is what makes RedBeard and Evalee talk. Old program: the "
+              "launcher boots them the moment a game starts. New program (Parley): one "
+              "always-on process that reports its own health every 10 s. If neither is "
+              "alive, the start signal fires into the void and the whole game runs with "
+              "SILENT characters — no one notices until guests are mid-game (7/15).",
               check_ai_launcher, fix_id="start_ai_launcher",
-              human_fix="Open a console in 'EscapeRoom Pirate Original' and run "
-                        "'python ai_launcher.py' (or approve the one-click fix), wait ~30s "
-                        "for its first heartbeat, then re-run the checklist."),
+              human_fix="Parley: double-click Parley\\START_PARLEY.bat (or approve the "
+                        "START bat's AI_SYSTEM=v2 step) and wait "
+                        "~10s for its first status beat. Old program: open a console in "
+                        "'EscapeRoom Pirate Original' and run 'python ai_launcher.py' (or "
+                        "approve the one-click fix), wait ~30s for its first heartbeat. "
+                        "Then re-run the checklist."),
         Check("no_game_running", "No game currently in progress", "Game Systems", "blocking",
               "Starting the launcher during a live game would kill it for the players inside.",
               check_no_game_running),

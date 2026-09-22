@@ -172,6 +172,9 @@
             <div class="say-group" id="dr-mode"><span class="lbl">Mode</span></div>
         </div>
         <div class="say-auto" id="dr-live">…</div>
+        <!-- Parley (2026-09-22): last story-beat receipt from /api/ai/beats.
+             Stays hidden while the old AI program (no BeatResult) is running. -->
+        <div class="say-auto" id="dr-beat" style="display:none; margin-top:6px; font-size:.8rem; opacity:.85;"></div>
         <table class="say-hist" id="dr-hist"><tbody></tbody></table>
     </div>
 </div>
@@ -845,6 +848,31 @@ function directSend() {
 
 loadDirect();
 setInterval(loadDirect, 5000);
+
+// ===== Parley beat receipts (2026-09-22): one line under the phase badge —
+// what happened to the last story beat (spoken / late / lost / canned…).
+// /api/ai/beats is empty under the old AI program, so the line stays hidden.
+const BEAT_OUTCOME_ICON = {spoken:"🗣️", late:"🐢", lost:"❌", expired:"⌛", canned:"📼", skipped:"⏭️"};
+function loadBeat() {
+    return fetch("/api/ai/beats").then(r => r.json()).then(j => {
+        const el = document.getElementById("dr-beat");
+        const b = j.last;
+        if (!b) { el.style.display = "none"; return; }
+        const out = String(b.outcome || "?");
+        const bad = (out === "lost" || out === "expired");
+        const ms = (b.first_audio_ms !== undefined && b.first_audio_ms !== null) ? ` · first audio ${Math.round(b.first_audio_ms)} ms` : "";
+        const txt = String(b.text || "").slice(0, 60) + (String(b.text || "").length > 60 ? "…" : "");
+        const when = b.received ? ` · ${String(b.received).slice(11, 19)}` : "";
+        el.style.display = "";
+        el.className = "say-auto" + (bad ? " off" : "");
+        el.innerHTML = `${BEAT_OUTCOME_ICON[out] || "🎬"} last beat <b>${escSay(out)}</b>`
+            + ` · ${escSay(b.agent || "?")}${ms}${when}`
+            + (b.reason && bad ? ` · ${escSay(b.reason)}` : "")
+            + (txt ? ` — “${escSay(txt)}”` : "");
+    }).catch(() => {});
+}
+loadBeat();
+setInterval(loadBeat, 5000);
 
 // ===== Bench props — sit a prop out for this round ==========================
 // Checked = the checklist skips this board's PING + start-position rows, so

@@ -252,7 +252,10 @@ def _check_stack():
                     and m3["age_s"] <= 600)
 
     la = signals.get("ai_launcher", {}).get("age_s")
-    if game_running and (la is None or la > 300):
+    # Parley (2026-09-22) has no launcher: its fresh ok=true AI/status beat
+    # counts as the AI program being up, so a Parley game never trips this.
+    parley_up = _mc.parley_alive() if hasattr(_mc, "parley_alive") else False
+    if game_running and not parley_up and (la is None or la > 300):
         seen = f"last heartbeat {int(la)}s ago" if la is not None else "never heard"
         _set_finding("ai_launcher", "error", "AI Character program down",
                      f"M3's story is Running but the AI launcher is silent ({seen}) "

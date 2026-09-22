@@ -539,6 +539,74 @@ def _helm_tile() -> dict:
     return tile
 
 
+def _parley_tile_state(sig: dict, game_running: bool):
+    """AI Character Brain tile for Parley (v2, 2026-09-22), from its retained
+    MermaidsTale/AI/status JSON beat (every 10 s). Returns (status, detail) or
+    None when no Parley beat has ever been seen (caller keeps the v1 path).
+    OFFLINE when the beat says ok=false (LWT 'parley offline' / 'stopped') or
+    when it has gone stale (> AI_STATUS_FRESH_S) while a game is running."""
+    data = sig.get("detail")
+    age = sig.get("age_s")
+    if not isinstance(data, dict) or age is None:
+        return None
+    ver = data.get("version") or "?"
+    if age > config.AI_STATUS_FRESH_S:
+        seen = f"last Parley status {int(age)}s ago"
+        if game_running:
+            return "offline", (f"GAME RUNNING but Parley v{ver} has gone silent ({seen}) — "
+                               "characters are dead; restart Parley")
+        return "warn", f"Parley v{ver} silent ({seen}) — not running, or its MQTT dropped"
+    if data.get("ok") is not True:
+        reason = data.get("reason") or "not ok"
+        return "offline", (f"Parley reports DOWN: {reason} ({int(age)}s ago)"
+                           + (" — GAME RUNNING with silent characters!" if game_running else ""))
+
+    phase = data.get("phase") or "?"
+    agent = data.get("agent") or "none"
+    sess = data.get("session") or {}
+    if sess:
+        sess_txt = (f"session {'open' if sess.get('open') else 'closed'}"
+                    f" ({sess.get('agent') or agent}, {sess.get('reconnects', 0)} reconnects)")
+    else:
+        sess_txt = f"no session · {data.get('reconnects', 0)} reconnects"
+    beats = data.get("beats") or {}
+    beats_txt = (f"beats {beats.get('spoken', 0)} spoken"
+                 f"/{beats.get('late', 0)} late/{beats.get('lost', 0)} lost"
+                 f"/{beats.get('canned', 0)} canned")
+    mics = data.get("mic") or {}
+    mic_bits = [f"{room} {'OK' if (m or {}).get('ok') else 'FAIL'}"
+                for room, m in sorted(mics.items())]
+    mic_txt = "mic " + (" ".join(mic_bits) if mic_bits else "?")
+    problems = data.get("config_problems") or []
+    config_ok = data.get("config_ok", True)
+    config_txt = "config OK" if config_ok else ("config PROBLEMS: " + "; ".join(map(str, problems))[:160])
+    detail = (f"Parley v{ver} · phase {phase} · agent {agent} · {sess_txt} · "
+              f"{beats_txt} · {mic_txt} · {config_txt} · {int(age)}s ago")
+    # A mic FAIL is shown in the text but does not colour the tile: a quiet
+    # room reads as a "failed" level check (mic_selftest 09-22: ship 0.5 rms).
+    return ("online" if config_ok else "warn"), detail
+
+
+@api.route("/ai/beats")
+def get_ai_beats():
+    """Parley (2026-09-22): the last 20 BeatResult receipts (oldest first)
+    plus the latest AI/status dict. Empty lists / null when the old AI program
+    is running — the Direct-the-Character card treats that as 'nothing yet'."""
+    if not mqtt_client:
+        return jsonify({"status": None, "status_age_s": None, "beats": [], "last": None})
+    sig = mqtt_client.get_system_signals().get("ai_status", {})
+    detail = sig.get("detail") if isinstance(sig.get("detail"), dict) else None
+    beats = mqtt_client.get_ai_beat_results()
+    return jsonify({
+        "status": detail,
+        "status_age_s": sig.get("age_s"),
+        "status_fresh": (sig.get("age_s") is not None
+                         and sig["age_s"] <= config.AI_STATUS_FRESH_S),
+        "beats": beats,
+        "last": beats[-1] if beats else None,
+    })
+
+
 def _build_systems(summary: dict) -> list:
     """Assemble the Systems group tiles (first group on the dashboard).
     Mixes live signals (broker, RedBeard/Talking, Windows default) with the
@@ -572,7 +640,12 @@ def _build_systems(summary: dict) -> list:
     launcher_sig = signals.get("ai_launcher", {})
     launcher_age = launcher_sig.get("age_s")
     launcher_alive = launcher_age is not None and launcher_age <= AI_BRAIN_FRESH_S
-    if ai_online:
+    parley = _parley_tile_state(signals.get("ai_status", {}), game_running)
+    if parley is not None:
+        # Parley (v2, 2026-09-22) has reported at least once this WatchTower
+        # run — its 10 s JSON beat is richer truth than RedBeard traffic.
+        ai_status, ai_detail = parley
+    elif ai_online:
         ai_status = "online"
         ai_detail = f"RedBeard {ai.get('detail','')} {int(ai_age)}s ago"
     elif game_running:
@@ -594,6 +667,7 @@ def _build_systems(summary: dict) -> list:
         "detail": ai_detail,
         "launcher_alive": launcher_alive,
         "game_running": game_running,
+        "parley": parley is not None,
     })
 
     # 3. M3 Story Engine (Mythric game runner) — State=Running.

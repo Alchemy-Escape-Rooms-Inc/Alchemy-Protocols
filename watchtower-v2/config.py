@@ -107,6 +107,21 @@ REQUIRED_PY_MODULES = ["paho.mqtt.client", "openpyxl", "pyaudio"]
 AI_LAUNCHER_HEARTBEAT_TOPIC = "MermaidsTale/AILauncher/Heartbeat"
 AI_LAUNCHER_FRESH_S = 95
 
+# Parley (2026-09-22): the NEW AI character program. It has NO launcher — one
+# process, always on, phases waiting|redbeard|jungle|cove|game_over. It keeps
+# every old topic (RedBeard/Heartbeat, AI/Phase, AI/Direct[Result]) AND adds
+# a retained JSON health beat every 10 s + one JSON receipt per story beat.
+# MUST match the topic strings in Parley's own config (parley.yaml / mqtt.py).
+AI_STATUS_TOPIC = "MermaidsTale/AI/status"          # retained, every 10 s
+AI_BEAT_RESULT_TOPIC = "MermaidsTale/AI/BeatResult"  # one per beat
+AI_STATUS_FRESH_S = 30                               # three missed beats
+PARLEY_DIR = SCRIPT_DIR + r"\Parley"
+PARLEY_BENCH_DIR = PARLEY_DIR + r"\bench"
+PARLEY_BENCH_RESULT = PARLEY_BENCH_DIR + r"\last_run.json"      # bench suite
+PARLEY_MIC_SELFTEST = PARLEY_BENCH_DIR + r"\mic_selftest.json"  # per-room mics
+PARLEY_BENCH_MAX_AGE_D = 7      # bench suite result older than this = stale
+PARLEY_MIC_MAX_AGE_D = 2        # mic self-test older than this = stale
+
 # Battle→DefenseOver progression watchdog (2026-08-08). AI/StartBattle marks
 # the battle beginning; the packaged game hard-caps the battle (~4m45s, then
 # BattleEnded|timeout) and publishes DefenseOver|trigger. M3 event 92 must

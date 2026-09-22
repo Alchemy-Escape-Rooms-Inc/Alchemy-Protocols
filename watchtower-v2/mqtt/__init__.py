@@ -186,7 +186,18 @@ class MQTTClient:
             #                  brain's answer to a Direct-the-Character note.
             "ai_phase":    {"last_seen": None, "detail": None},
             "ai_direct_result": {"last_seen": None, "detail": None},
+            #   ai_status   -> MermaidsTale/AI/status (Parley, 2026-09-22):
+            #                  retained JSON every 10 s, detail = parsed dict
+            #                  ({"ok":bool,"version","phase","agent",...} or
+            #                  {"ok":false,"reason":"parley offline|stopped"}).
+            #                  Never set by the old program (v1 path stays).
+            #   ai_beat_result -> MermaidsTale/AI/BeatResult (Parley): the
+            #                  last per-beat receipt dict; history kept in
+            #                  self.ai_beat_results (deque, 20).
+            "ai_status":   {"last_seen": None, "detail": None},
+            "ai_beat_result": {"last_seen": None, "detail": None},
         }
+        self.ai_beat_results: deque = deque(maxlen=20)
 
         # Last retained WatchTower/ShipCameraTuning payload (JSON string) —
         # seeded by the broker's retained replay on subscribe, updated on every
@@ -704,6 +715,11 @@ class MQTTClient:
             age = _launcher_age()
             if age is not None and age <= config.AI_LAUNCHER_FRESH_S:
                 return  # supervisor alive — it spawns the brain itself, as designed
+            if self.parley_alive():
+                # Parley (2026-09-22) has no launcher and receives GameStart
+                # itself. Respawning ai_launcher.py here would boot the OLD
+                # brain alongside it — two characters talking at once.
+                return
 
             seen = (f"last heartbeat {int(age)}s ago" if age is not None
                     else "no heartbeat since WatchTower started")
@@ -801,6 +817,29 @@ class MQTTClient:
             sig = self.system_signals["ai_direct_result"]
             sig["last_seen"] = now
             sig["detail"] = payload
+        # Parley health beat (2026-09-22): retained JSON every 10 s. ok=false
+        # carries a reason (LWT "parley offline" / clean "stopped") = offline.
+        # A fresh ok=true ALSO stamps ai_brain — Parley still sends the
+        # RedBeard/Heartbeat, so this is belt and braces, never a mask.
+        elif topic == config.AI_STATUS_TOPIC:
+            sig = self.system_signals["ai_status"]
+            data = self._parse_json_dict(payload, "status")
+            sig["last_seen"] = now
+            sig["detail"] = data
+            if data.get("ok") is True:
+                brain = self.system_signals["ai_brain"]
+                brain["last_seen"] = now
+                brain["detail"] = f"AI/status (Parley v{data.get('version', '?')})"
+        # Parley per-beat receipt: what happened to each story beat.
+        elif topic == config.AI_BEAT_RESULT_TOPIC:
+            sig = self.system_signals["ai_beat_result"]
+            data = self._parse_json_dict(payload, "beat")
+            data.setdefault("received", now.isoformat(timespec="seconds"))
+            sig["last_seen"] = now
+            sig["detail"] = data
+            if "outcome" in data:  # a real receipt, not a parse-error stub
+                with self.lock:
+                    self.ai_beat_results.append(data)
         # Helm audio brain health: raw JSON, parsed by routes/say_api.py.
         elif topic == "MermaidsTale/Audio/status":
             sig = self.system_signals["helm_audio"]
@@ -824,6 +863,31 @@ class MQTTClient:
                 self.system_signals["unreal_boot"]["last_seen"] = now
                 self.system_signals["unreal_boot"]["detail"] = payload
                 self._schedule_tuning_republish("Unreal boot detected")
+
+    @staticmethod
+    def _parse_json_dict(payload: str, what: str) -> dict:
+        """Parley payloads are JSON objects; anything else becomes an
+        {"ok": false, "reason": ...} dict so readers never see a string."""
+        try:
+            data = json.loads(payload) if payload else {}
+        except ValueError:
+            return {"ok": False, "reason": f"unparseable {what}: {payload[:80]}"}
+        if not isinstance(data, dict):
+            return {"ok": False, "reason": f"{what} payload is not a JSON object"}
+        return data
+
+    def parley_alive(self, fresh_s: Optional[int] = None) -> bool:
+        """True when Parley's AI/status beat is fresh AND says ok=true."""
+        sig = self.get_system_signals().get("ai_status", {})
+        age = sig.get("age_s")
+        detail = sig.get("detail")
+        return (age is not None and age <= (fresh_s or config.AI_STATUS_FRESH_S)
+                and isinstance(detail, dict) and detail.get("ok") is True)
+
+    def get_ai_beat_results(self) -> list:
+        """Last 20 Parley BeatResult receipts, oldest first."""
+        with self.lock:
+            return list(self.ai_beat_results)
 
     def _schedule_tuning_republish(self, reason: str):
         """Kick off a one-shot delayed re-publish of the three retained tuning
