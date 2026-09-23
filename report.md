@@ -1,13 +1,13 @@
 ## Grimoire Daily Report
-**Generated:** 2026-09-20 10:31 AM EST
+**Generated:** 2026-09-23 11:18 AM EST
 
-**Grimoire last updated:** 2026-09-16T15:20:04Z
+**Grimoire last updated:** 2026-09-22T20:00:46-04:00
 
 ### Repos with changes since last Grimoire update
 
 | Repository | Last Push | Status |
 |------------|-----------|--------|
-| New-Cannons | 2026-09-19T21:25:17Z | 3d behind |
+| ShipNavMap | 2026-09-23T00:31:09Z | 0d behind |
 
 **Total repos with newer changes:** 1
 
