@@ -447,10 +447,24 @@
           <span>IP addresses</span><span class="sep">·</span>
           <span>Ports</span><span class="sep">·</span>
           <span>M3/BAM integration</span><span class="sep">·</span>
-          <span>Protocol standard</span>
+          <span>Protocol standard</span><span class="sep">·</span>
+          <span style="color:#F87171;font-weight:600">OTA updates mandatory</span>
         </div>
       </div>
+      <!-- OTA became MANDATORY 2026-09-22 (mqtt-protocol.md). Callout + fleet count. -->
+      <div id="ota-callout" style="margin:0 0 14px;padding:12px 16px;border-radius:8px;border:1px solid #7F1D1D;background:#2A0F12;font-family:'Inter',sans-serif;font-size:12px;color:#C4B5FD;line-height:1.6">
+        <strong style="color:#EEEDF5">Over-the-air firmware updates are mandatory on every Wi-Fi board</strong> (protocol change 2026-09-22).
+        After the one-time USB flash, every update goes over the LAN: <code>arduino-cli upload -p &lt;board IP&gt; --upload-field password=&lt;Wi-Fi password&gt;</code>.
+        Boards without <code>ArduinoOTA</code> are at most <em>partial</em> compliance. Per-board status is on the
+        <a href="#" onclick="showSection('manifests', document.querySelector('.sidebar-btn[onclick*=manifests]')); return false;" style="color:#818CF8">Device Manifests</a> page.
+        <span id="ota-fleet-count" style="display:block;margin-top:4px;color:#9DA0B8"></span>
+      </div>
       <div class="grimoire-panel">
+        <div class="section-header-panel" style="margin:0 0 10px"><h2 style="font-size:14px">📡 MQTT Protocol Standard <span style="font-size:11px;color:#3A3F5C;font-weight:400">mqtt-protocol.md — authoritative</span></h2></div>
+        <div class="grimoire-body">{{ grimoire.mqtt_protocol | safe }}</div>
+      </div>
+      <div class="grimoire-panel" style="margin-top:14px">
+        <div class="section-header-panel" style="margin:0 0 10px"><h2 style="font-size:14px">🌐 Network Infrastructure <span style="font-size:11px;color:#3A3F5C;font-weight:400">network-infrastructure.md</span></h2></div>
         <div class="grimoire-body">{{ grimoire.network | safe }}</div>
       </div>
     </div>
@@ -575,6 +589,20 @@ function otaBadge(m) {
     if (on) return `<span style="color:#34D399;font-weight:700">&#10004; yes</span>${m.ota_port ? ` <span style="color:#3A3F5C">:${m.ota_port}</span>` : ""}`;
     return `<span style="color:#F87171;font-weight:700">&#10006; REQUIRED</span> <span style="color:#3A3F5C">USB-only</span>`;
 }
+
+// Fleet OTA readiness line under the Network & MQTT callout.
+function loadOtaFleetCount() {
+    const el = document.getElementById("ota-fleet-count");
+    if (!el) return;
+    fetch("/api/manifests").then(r => r.json()).then(data => {
+        const all = data.manifests || [];
+        const yes = all.filter(m => String(m.ota_enabled || "").toLowerCase() === "yes");
+        const no  = all.filter(m => String(m.ota_enabled || "").toLowerCase() !== "yes");
+        el.innerHTML = `Fleet: <span style="color:#34D399">${yes.length} ready</span> (${yes.map(m => m.device_name).join(", ") || "none"})`
+            + (no.length ? ` &middot; <span style="color:#F87171">${no.length} still USB-only</span> (${no.map(m => m.device_name).join(", ")})` : "");
+    }).catch(() => {});
+}
+document.addEventListener("DOMContentLoaded", loadOtaFleetCount);
 
 function loadManifests() {
     fetch("/api/manifests").then(r => r.json()).then(data => {

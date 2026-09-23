@@ -46,6 +46,12 @@ def get_network_infrastructure() -> str:
     return _render("network-infrastructure.md")
 
 
+def get_mqtt_protocol() -> str:
+    """The authoritative MQTT / device protocol standard (mqtt-protocol.md),
+    shown under Library > Network & MQTT. OTA became mandatory 2026-09-22."""
+    return _render("mqtt-protocol.md")
+
+
 def get_debug_history() -> str:
     return _render("debug-log.md")
 
@@ -64,6 +70,7 @@ def get_all_sections() -> dict:
         "operations": get_operations_manual(),
         "wiring": get_wiring_reference(),
         "network": get_network_infrastructure(),
+        "mqtt_protocol": get_mqtt_protocol(),
         "debug_history": get_debug_history(),
         "code_health": get_code_health(),
         "watchtower_doc": get_system_checker_doc(),
