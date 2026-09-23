@@ -1,14 +1,13 @@
 ## Grimoire Daily Report
-**Generated:** 2026-07-26 08:02 AM EST
+**Generated:** 2026-09-20 10:31 AM EST
 
-**Grimoire last updated:** 2026-07-21T14:51:13-04:00
+**Grimoire last updated:** 2026-09-16T15:20:04Z
 
 ### Repos with changes since last Grimoire update
 
 | Repository | Last Push | Status |
 |------------|-----------|--------|
-| CoveDoor | 2026-07-25T16:43:16Z | 3d behind |
-| Captains-Cuffs | 2026-07-25T16:42:48Z | 3d behind |
+| New-Cannons | 2026-09-19T21:25:17Z | 3d behind |
 
-**Total repos with newer changes:** 2
+**Total repos with newer changes:** 1
 

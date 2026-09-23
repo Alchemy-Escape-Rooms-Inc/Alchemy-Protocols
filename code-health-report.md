@@ -1050,3 +1050,319 @@ The following repos were updated since the last Grimoire revision:
 
 
 *Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-07-27 09:38 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-07-30 08:28 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### CoveDoor (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-02 08:02 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### JungleDoor (updated)
+- Source files: 3 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-03 09:40 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### JungleDoor (updated)
+- Source files: 3 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-06 08:55 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-08 07:27 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 4 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-11 07:42 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### CoveDoor (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-15 07:19 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### CoveDoor (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-22 07:19 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Wireless-Motion-Sensor (updated)
+- Source files: 1 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-25 07:26 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Wireless-Motion-Sensor (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-08-27 04:54 PM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Balancing-Scale (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-04 10:49 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 5 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-07 12:17 PM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 5 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+### Balancing-Scale (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-11 10:50 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Balancing-Scale (updated)
+- Source files: 2 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-12 09:53 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 5 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-13 10:48 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 6 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-14 12:47 PM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Captains-Cuffs (updated)
+- Source files: 2 C/C++, 0 JS/TS, 5 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-15 11:27 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 7 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-16 11:20 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### Sun-Dial (updated)
+- Source files: 7 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: No | Main source: No
+- Broker IPs found (verify correctness)
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-09-20 10:31 AM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### New-Cannons (updated)
+- Source files: 29 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: Yes | Main source: Yes
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
