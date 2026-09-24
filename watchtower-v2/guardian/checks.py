@@ -351,7 +351,8 @@ def check_ship_echo_bench(ctx):
             return "fail", (f"bench passed ({r.get('erle_measured_db')} dB) but {age:.0f} days ago — the AI "
                             "ignores results older than 45 days; re-run bench_aec.py")
         return "pass", (f"LOCKED {r.get('erle_measured_db')} dB, delay {r.get('delay_ms')} ms, "
-                        f"AEC_PLAY_DELAY_MS={r.get('play_delay_ms')} ({r.get('ts')}, {age:.0f} d ago) — "
+                        f"AEC_PLAY_DELAY_MS={r.get('play_delay_ms')} AEC_TAIL_MS={r.get('tail_ms')} "
+                        f"({r.get('ts')}, {age:.0f} d ago) — "
                         "ship listen-through ON at next AI launch")
     return "fail", (f"last bench ({r.get('ts')}) = {v}: echo reduced only {r.get('erle_measured_db')} dB "
                     "— canceller not usable in this room; listen-through stays OFF")
