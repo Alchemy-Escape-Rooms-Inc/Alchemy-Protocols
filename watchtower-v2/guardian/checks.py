@@ -107,24 +107,6 @@ def check_internet_voices(ctx):
     return status, detail
 
 
-def check_a2f_endpoint(ctx):
-    host, port = config.A2F_ENDPOINT
-    return _tcp_check(host, port, timeout=4.0)
-
-
-def check_docker(ctx):
-    try:
-        rc = subprocess.run(["docker", "version"], capture_output=True, timeout=20,
-                            creationflags=subprocess.CREATE_NO_WINDOW).returncode
-        if rc == 0:
-            return "pass", "Docker daemon answering"
-        return "warn", "Docker daemon not responding — the launcher will start Docker Desktop itself"
-    except FileNotFoundError:
-        return "warn", "docker CLI not found on PATH"
-    except subprocess.TimeoutExpired:
-        return "warn", "docker version timed out — daemon likely starting up"
-
-
 # ─────────────────────────────────────────────
 # Files & Builds
 # ─────────────────────────────────────────────
@@ -1286,14 +1268,6 @@ def build_checklist(mqtt_client) -> list:
               "RedBeard and Evalee go mute mid-show.",
               check_internet_voices,
               human_fix="Check the internet connection / router. Voices cannot work offline."),
-        Check("a2f_endpoint", "Face animation server (COMMANDCENTER)", "Connections", "advisory",
-              "Drives RedBeard's mouth movement. If down, he still talks but his face freezes.",
-              check_a2f_endpoint,
-              human_fix="Check COMMANDCENTER (10.1.10.228) is on and its A2F Docker container is up."),
-        Check("docker", "Docker daemon", "Connections", "advisory",
-              "Runs the local face-animation container. The launcher can start Docker "
-              "Desktop itself, it just adds ~2 min to launch.",
-              check_docker),
         # Parley (2026-09-22): the new AI character program's own proof files.
         Check("parley_bench", "Parley bench suite passed this week", "Connections", "advisory",
               "Parley (the AI character program) tests itself: config, voice clock, "

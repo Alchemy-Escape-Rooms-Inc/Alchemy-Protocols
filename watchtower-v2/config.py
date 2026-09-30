@@ -87,15 +87,13 @@ MYTHRIC_PATH = r"C:\Program Files (x86)\Mythric Mystery Master\bin\Mystery.exe"
 AMT_XML_LIVE = r"C:\Program Files (x86)\Mythric Mystery Master\stories\AMT\AMT.xml"
 
 # TCP endpoints the show depends on: (host, port, what-it-is)
-A2F_ENDPOINT = ("10.1.10.228", 52000)        # COMMANDCENTER A2F NIM (face animation). DHCP roulette: .228 -> .229 (09-13) -> .228 (09-24). Get MAC 40-AE-30-22-EA-00 a router reservation!
 ELEVENLABS_ENDPOINT = ("api.elevenlabs.io", 443)  # AI character voices (cloud)
 
 # Launcher scripts the START bat calls — all must exist or launch breaks midway.
 REQUIRED_LAUNCHER_SCRIPTS = [
     "enforce_displays.py", "audio_enforcer.py", "clear_retained_mqtt.py",
     "gamestart_retained_guard.py", "game_end_retained_sweeper.py",
-    "m3_restart_story.py", "verify_routing.py", "a2f_preflight.py",
-    "a2f_notify_session_start.py", "ai_launcher.py", "shutdown_ai_gracefully.py",
+    "m3_restart_story.py", "verify_routing.py", "ai_launcher.py", "shutdown_ai_gracefully.py",
 ]
 REQUIRED_AI_SCRIPTS = ["verify_audio_loopback.py", "mic_check.py"]
 
@@ -151,7 +149,7 @@ HEALTH_FLAP_WINDOW_S = 1800         # flap analysis window
 HEALTH_FLAP_GAP_S = 60              # a heartbeat hole this long = one gap
 HEALTH_FLAP_MIN_GAPS = 3            # this many gaps in the window = flapping
 HEALTH_FLAP_CHATTY_MEDIAN_S = 15    # only boards that normally beat faster than this
-HEALTH_ENDPOINT_EVERY_TICKS = 5     # ElevenLabs/A2F TCP probe cadence (x TICK)
+HEALTH_ENDPOINT_EVERY_TICKS = 5     # ElevenLabs TCP probe cadence (x TICK)
 HEALTH_SLOW_EVERY_TICKS = 10        # disk + M3-uptime cadence (x TICK)
 HEALTH_ROUTING_EVERY_TICKS = 5      # waveOut PC:X drift probe cadence (x TICK)
 DAILY_REPORT_HOUR = 9               # local hour to write the Daily Report

@@ -736,13 +736,13 @@ The room, in one breath: ESP32-based physical props (BarrelPiston, BalancingScal
 TridentCabinet, CaptainsCuffs, CoveDoor, SunDial, RuinsWall, Cannons...) talk over MQTT \
 (broker {config.MQTT_BROKER}). "M3" = Mythric Mystery Master (Mystery.exe), the story/game-runner \
 app. An Unreal Engine program drives the ship screens (RedBeard, Evalee, the mermaid finale). \
-An AI Character system does guest-facing voice via ElevenLabs + Audio2Face. WatchTower (this app) \
+An AI Character system (Parley) does guest-facing voice via ElevenLabs; the characters' mouths are driven \
+from ElevenLabs' own letter timings sent to Unreal over Live Link (no Audio2Face, no Docker, no second PC \
+since 2026-08-18; those were removed for good 2026-09-30). WatchTower (this app) \
 watches all of it. Props typically use topics like <Prop>/command, <Prop>/status, <Prop>/log. \
 Retained MQTT messages on /command topics are a known hazard (reboot loops, command echo storms).
 
-Some infrastructure is invisible on MQTT but still yours to know: Docker Desktop on this PC runs \
-the local face-animation container (the game launcher can start Docker itself, adding ~2 min), and \
-COMMANDCENTER (10.1.10.228) runs the Audio2Face container that drives RedBeard's face. WatchTower's \
+WatchTower's \
 Guardian gates game start behind a pre-game checklist — Start only unlocks off a fresh all-green \
 run. When the operator asks about ANY pre-game check, its error text, or why Start is locked, call \
 get_checklist_catalog (every check's meaning, severity, and fix) plus get_checklist_run (latest \

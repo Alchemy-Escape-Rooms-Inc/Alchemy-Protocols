@@ -28,7 +28,6 @@ Detectors (all thresholds in config HEALTH_*):
   game gone deaf     M3 story Running but Unreal's RoomStatus heartbeat lost
                      (the cove MQTT-death class)
   voices internet    ElevenLabs TCP unreachable (2 consecutive probes)
-  face server        A2F endpoint TCP unreachable (2 consecutive probes)
   disk space         C: below the Guardian floor
   M3 stale           Mystery.exe uptime past the audio-wedge limit — this one
                      AUTO-RESTARTS M3 (auto_remediate.py, 2026-08-17 owner
@@ -62,7 +61,7 @@ _findings: dict = {}          # id -> {id, severity, title, detail, since}
 _last_report: dict | None = None
 _report_date: str | None = None
 _started_at = time.time()
-_endpoint_fails = {"voices": 0, "a2f": 0}
+_endpoint_fails = {"voices": 0}
 _tick_n = 0
 _m3_uptime_h: float | None = None
 
@@ -287,9 +286,6 @@ def _check_endpoints():
         ("voices", config.ELEVENLABS_ENDPOINT, "internet for AI voices down", "error",
          "ElevenLabs is unreachable — RedBeard/Evalee would be MUTE in a game; "
          "check the internet connection / router"),
-        ("a2f", config.A2F_ENDPOINT, "face animation server down", "warn",
-         "the A2F endpoint (COMMANDCENTER) is unreachable — characters would talk "
-         "with frozen faces; check the machine + Docker container"),
     ):
         if _tcp_ok(host, port):
             _endpoint_fails[key] = 0
