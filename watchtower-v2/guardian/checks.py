@@ -909,6 +909,21 @@ def check_ai_launcher(ctx):
     def _age():
         return mc.get_system_signals().get("ai_launcher", {}).get("age_s")
 
+    # House program is Parley and Parley is NOT alive. The old launcher's
+    # heartbeat must not turn this green (2026-10-04: the auto-fix had started
+    # the old launcher, the row passed on its heartbeat, and a game begun any
+    # way but the Start button would have run on the old program).
+    if (config.AI_SYSTEM_DEFAULT or "v1").lower() == "v2":
+        age = _age()
+        old_up = (age is not None and age <= config.AI_LAUNCHER_FRESH_S) or _ai_launcher_process_running()
+        old_note = "the OLD program (ai_launcher.py) is running in its place" if old_up else "no AI program is running"
+        if not _process_running(config.M3_PROCESS_NAME):
+            return "pass", (f"Parley is not running and {old_note} — normal before launch: M3 isn't up "
+                            "either (so no game can start), and the Start button brings Parley up")
+        return "fail", (f"Parley is NOT running while the game stack is up, and {old_note} — a game "
+                        "started now would run " + ("on the OLD AI program, without the Parley fixes"
+                                                    if old_up else "with NO AI characters (RedBeard/Evalee silent)"))
+
     age = _age()
     if age is not None and age <= config.AI_LAUNCHER_FRESH_S:
         return "pass", f"launcher heartbeat {int(age)}s ago"

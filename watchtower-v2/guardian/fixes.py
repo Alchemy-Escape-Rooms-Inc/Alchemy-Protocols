@@ -202,7 +202,14 @@ def fix_start_ai_launcher(ctx):
     only GameStart receiver on the AI side. Kills any existing launcher (and any
     orphaned character brain) FIRST so two launchers can never both spawn a
     brain on the next GameStart (= double RedBeard voices). PRE-GAME ONLY:
-    mid-game the right button is Reset Brain (Cmd restart), not this."""
+    mid-game the right button is Reset Brain (Cmd restart), not this.
+
+    When the house AI program is Parley (config.AI_SYSTEM_DEFAULT == "v2") this
+    starts PARLEY instead. 2026-10-04: with Parley offline the auto-fix brought
+    up the old launcher, the check went green on its heartbeat, and a game not
+    started from the Start button would have run on the old program."""
+    if (config.AI_SYSTEM_DEFAULT or "v1").lower() == "v2":
+        return fix_start_parley(ctx)
     script = os.path.join(config.SCRIPT_DIR, "ai_launcher.py")
     if not os.path.exists(script):
         return {"ok": False, "output": f"{script} not found"}
@@ -224,6 +231,36 @@ def fix_start_ai_launcher(ctx):
     return {"ok": True,
             "output": "ai_launcher.py started in its own 'AI Characters' console window. "
                       "Its first heartbeat lands within ~30s — re-run the checklist after."}
+
+
+def fix_start_parley(ctx):
+    """Start Parley (the V2 AI character program) the way START bat step [2.96]
+    does. The old program is stopped FIRST: both would answer GameStart (two
+    RedBeards), and Parley's single-instance lock refuses to run beside the old
+    client anyway. A Parley that is already up is asked to stop cleanly, then
+    any leftover process is removed. PRE-GAME ONLY."""
+    script = os.path.join(config.PARLEY_DIR, "parley.py")
+    if not os.path.exists(script):
+        return {"ok": False, "output": f"{script} not found"}
+    stopper = os.path.join(config.PARLEY_DIR, "stop_parley.py")
+    if os.path.exists(stopper):          # closes its ElevenLabs sessions; harmless when it is not running
+        _run([sys.executable, stopper], timeout=30, cwd=config.PARLEY_DIR)
+    # Command-line match on the AI scripts only — never touches WatchTower's
+    # app.py or the retained guard/sweeper pythons.
+    _run(["powershell", "-NoProfile", "-Command",
+          "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
+          "Where-Object { $_.CommandLine -match "
+          "'ai_launcher\\.py|camera_conversation_client\\.py|parley\\.py' } | "
+          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], timeout=30)
+    time.sleep(1)
+    try:
+        subprocess.Popen(f'start "Parley" /min cmd /c "cd /d "{config.PARLEY_DIR}" && python parley.py"',
+                         shell=True, cwd=config.PARLEY_DIR)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "output": f"launch failed: {e}"}
+    return {"ok": True,
+            "output": "Old AI program stopped; Parley started in its own minimised 'Parley' window. "
+                      "Its first status beat lands within ~10s — re-run the checklist after."}
 
 
 def fix_restart_brain(ctx):
@@ -379,14 +416,16 @@ FIXES = {
     },
     "start_ai_launcher": {
         "title": "Start the AI Character program",
-        "problem": "The AI launcher (ai_launcher.py) is not running or its MQTT "
-                   "connection is dead. It is the ONLY thing that boots RedBeard "
-                   "and Evalee when a game starts — in this state the next game "
-                   "would run with completely silent characters.",
-        "action": "Kill any stuck copy, then start ai_launcher.py fresh in its own "
-                  "'AI Characters' console window (same as the START bat does). "
-                  "PRE-GAME ONLY — mid-game use Reset Brain instead. Wait ~30s for "
-                  "its heartbeat, then re-run the checklist.",
+        "problem": "The AI program that makes RedBeard and Evalee talk is not running, "
+                   "is deaf, or the OLD program is up where Parley should be. In this "
+                   "state the next game would run with silent characters, or on the "
+                   "old program.",
+        "action": "Stop any AI program that is running (old launcher, old brain, a "
+                  "stuck Parley), then start the house AI program fresh: Parley when "
+                  "AI_SYSTEM_DEFAULT is v2 (minimised 'Parley' window, first status "
+                  "beat in ~10s), otherwise ai_launcher.py ('AI Characters' window, "
+                  "heartbeat in ~30s). PRE-GAME ONLY — mid-game use Reset Brain "
+                  "instead. Then re-run the checklist.",
         "run": fix_start_ai_launcher,
     },
     "restart_brain": {

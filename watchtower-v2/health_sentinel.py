@@ -260,6 +260,15 @@ def _check_stack():
                      f"M3's story is Running but the AI launcher is silent ({seen}) "
                      "— characters won't launch for a game; use the Guardian "
                      "one-click fix or the START bat")
+    elif (game_running and not parley_up
+          and (getattr(config, "AI_SYSTEM_DEFAULT", "v1") or "v1").lower() == "v2"):
+        # The old launcher IS beating, but the house program is Parley (09-30
+        # 13:44: a game ran on the old brain with Parley offline, unnoticed).
+        _set_finding("ai_launcher", "warn", "game is on the OLD AI program",
+                     "M3's story is Running and Parley is offline — the old program "
+                     "(ai_launcher.py) is voicing this game, so the Parley fixes do not "
+                     "apply to it. After the game, start it from the Start button "
+                     "(it brings Parley up) or use the Guardian one-click fix")
     else:
         _clear_finding("ai_launcher")
 

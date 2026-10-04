@@ -206,14 +206,19 @@ def try_start_ai_launcher(mc) -> dict:
         from guardian import fixes as guardian_fixes  # lazy: avoids import cycles
         return guardian_fixes.fix_start_ai_launcher({"mqtt": mc})
 
+    parley = (config.AI_SYSTEM_DEFAULT or "v1").lower() == "v2"   # the fix starts Parley then, so verify Parley
+
     def _verify():
         if not mc:
             return False
+        if parley:
+            return mc.parley_alive()
         age = mc.get_system_signals().get("ai_launcher", {}).get("age_s")
         return age is not None and age <= 40
 
     return _attempt("ai_launcher", mc,
-                    "restart dead/deaf ai_launcher.py (AI Character supervisor)",
+                    "start Parley (AI characters V2), replacing any old AI program" if parley
+                    else "restart dead/deaf ai_launcher.py (AI Character supervisor)",
                     _restart, _verify, verify_timeout_s=45)
 
 
