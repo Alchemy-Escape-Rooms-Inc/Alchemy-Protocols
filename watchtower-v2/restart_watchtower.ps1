@@ -34,7 +34,8 @@ if (-not $Force) {
 }
 
 # 2. stop the live app.py + the cmd window that hosts it
-$py = Get-CimInstance Win32_Process -Filter "Name like 'python%'" | Where-Object { $_.CommandLine -like '*app.py*' -and $_.CommandLine -notlike '*alyssa*' }
+#    (not Olympus: 'olympus_app.py' also ends in app.py, and on 2026-10-04 this script closed the Olympus window with it)
+$py = Get-CimInstance Win32_Process -Filter "Name like 'python%'" | Where-Object { $_.CommandLine -like '*app.py*' -and $_.CommandLine -notlike '*alyssa*' -and $_.CommandLine -notlike '*olympus*' }
 foreach ($p in $py) {
     $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($p.ParentProcessId)" -ErrorAction SilentlyContinue
     Log "stopping app.py pid $($p.ProcessId) (parent $($p.ParentProcessId) $($parent.Name))"
