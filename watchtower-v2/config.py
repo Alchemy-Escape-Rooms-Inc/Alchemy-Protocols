@@ -39,8 +39,8 @@ CLICKUP_API_URL = "https://api.clickup.com/api/v2"
 # =============================================================================
 # No API key anymore: Tink runs through the Claude Code CLI (`claude -p`),
 # billing the operator's Claude subscription. Auth = the CLI's own /login.
-TINK_MODEL = "claude-fable-5"
-TINK_FALLBACK_MODEL = "claude-opus-4-8"   # CLI --fallback-model if Fable is overloaded/unavailable
+TINK_MODEL = "claude-opus-5-5"            # was Fable: 10-04 it hit the monthly spend limit and every Tink turn died
+TINK_FALLBACK_MODEL = "claude-sonnet-5-5" # CLI --fallback-model if Opus is overloaded/unavailable (same pair as Olympus)
 
 # =============================================================================
 # ALEXA SMART PLUGS (Power page)
