@@ -392,6 +392,12 @@ ESP32_DEVICES = [
     {"name": "StarTableSprite", "topic": "StarTableSprite", "icon": "📽️", "color": "#D97B9F", "room": "Cove"},
 ]
 
+# Boards the pre-game checklist never pings and never lists (owner, 2026-10-05: "take Star Table off the PING game
+# report"; he had been benching it by hand every round). The tile stays on the dashboard and its status is still
+# tracked. NOTE: "StarTable" here IS the StarTableBridge board (the table itself has no MQTT), so with it off the
+# report nothing warns before a game when that bridge is down.
+NO_PING_CHECK = {"StarTable"}
+
 
 # =============================================================================
 # GRIMOIRE SLUG MAP

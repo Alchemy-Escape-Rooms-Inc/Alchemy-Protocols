@@ -1174,7 +1174,8 @@ def _ensure_device_sweep(ctx):
     # Benched boards sit the round out — don't ping them, and above all don't
     # spend the 15s straggler retry waiting on a board we know is down.
     esp_names = [n for n, d in mc.devices.items()
-                 if d.device_type == DeviceType.ESP32 and n not in benched]
+                 if d.device_type == DeviceType.ESP32 and n not in benched
+                 and n not in config.NO_PING_CHECK]
 
     # 2026-08-26 (operator): the WaterFountain ESP32 shares the pump's
     # relay-switched power (Jungle relay 1, INVERTED: "On" = relay energized =
@@ -1463,6 +1464,8 @@ def build_checklist(mqtt_client) -> list:
     if mqtt_client:
         for name, dev in sorted(mqtt_client.devices.items(),
                                 key=lambda kv: (kv[1].room, kv[0])):
+            if name in config.NO_PING_CHECK:      # off the pre-game report for good (owner); tile stays on the dashboard
+                continue
             kind = "zone controller" if dev.device_type == DeviceType.BAC else "prop board"
             checks.append(Check(
                 f"device_{name}", f"{dev.icon} {name}", f"Prop Boards — {dev.room}",
