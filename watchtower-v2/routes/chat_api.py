@@ -216,6 +216,51 @@ def _notes_prompt_block():
     )
 
 
+# One fairy, two windows (2026-10-05, operator: "if they share a memory why would I have to
+# retell her?"). Tinks also has a seat in Olympus (the crew app), with her own chat there. This
+# block shows the bubble what she noted and what was said over there, so a request made in
+# Olympus ("take Star Table off the report") only needs a "do it" here.
+OLYMPUS_TINKS_DIR = getattr(config, "OLYMPUS_TINKS_DIR", r"C:\Users\Alchemy\Repos\Olympus\data\tinks")
+OLYMPUS_TALK_MSGS = 10
+OLYMPUS_MSG_CAP = 500
+OLYMPUS_MEMORY_CAP = 3000
+
+
+def _olympus_prompt_block():
+    parts = []
+    try:
+        with open(os.path.join(OLYMPUS_TINKS_DIR, "memory.md"), "r", encoding="utf-8") as f:
+            mem = f.read().strip()
+        if mem:
+            parts.append("Notes you saved from your Olympus seat:\n" + mem[-OLYMPUS_MEMORY_CAP:])
+    except OSError:
+        pass
+    try:
+        rows = []
+        with open(os.path.join(OLYMPUS_TINKS_DIR, "history.jsonl"), "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(r.get("content"), str) and r["content"].strip():
+                    rows.append(r)
+        if rows:
+            who = {"user": "operator", "assistant": "you"}
+            parts.append("The latest talk in your Olympus window (newest last):\n" + "\n".join(
+                f"({r.get('ts', '?')}) {who.get(r.get('role'), r.get('role'))}: {r['content'].strip()[:OLYMPUS_MSG_CAP]}"
+                for r in rows[-OLYMPUS_TALK_MSGS:]))
+    except OSError:
+        pass
+    if not parts:
+        return ""
+    return ("\n\nYou are the same Tinks who sits on the Olympus crew (the operator's other window, where he "
+            "calls himself captain). There your hands are read-only, so he may ask for something there and "
+            "come here for you to do it. Never make him explain it twice: what was asked over there is below. "
+            "If he says \"do it\" or \"what I asked in Olympus\", this is what he means. Still confirm in one "
+            "line what you are about to change before you change it.\n\n" + "\n\n".join(parts))
+
+
 # =============================================================================
 # TOOLS
 # =============================================================================
@@ -769,7 +814,7 @@ killing processes, publishing MQTT) unless the operator asked for exactly that t
 quirk the Grimoire and logs don't record, save it with the remember tool. Chat history trims and \
 resets; the notebook is forever. Don't duplicate — forget a stale note before replacing it, and \
 don't save what the Grimoire, logs, or code already record.\
-{_notes_prompt_block()}"""
+{_notes_prompt_block()}{_olympus_prompt_block()}"""
 
 
 class ChatUnavailable(Exception):
