@@ -392,11 +392,15 @@ ESP32_DEVICES = [
     {"name": "StarTableSprite", "topic": "StarTableSprite", "icon": "📽️", "color": "#D97B9F", "room": "Cove"},
 ]
 
-# Boards the pre-game checklist never pings and never lists (owner, 2026-10-05: "take Star Table off the PING game
-# report"; he had been benching it by hand every round). The tile stays on the dashboard and its status is still
-# tracked. NOTE: "StarTable" here IS the StarTableBridge board (the table itself has no MQTT), so with it off the
-# report nothing warns before a game when that bridge is down.
-NO_PING_CHECK = {"StarTable"}
+# Boards the pre-game checklist never pings and never lists. The tile stays on the dashboard and status is still
+# tracked. EMPTY since 2026-10-05: the owner asked for "Star Table" to come off the report believing it was the
+# table (which has no MQTT), then put it back the same day on learning that the "StarTable" entry IS the
+# StarTableBridge board - the only thing that tells the game a star was solved.
+NO_PING_CHECK = set()
+
+# What a board is called on the pre-game checklist when its registry name misleads. Display only: the registry
+# name, MQTT topic and bench list are unchanged.
+CHECKLIST_LABELS = {"StarTable": "StarTable Bridge"}
 
 
 # =============================================================================

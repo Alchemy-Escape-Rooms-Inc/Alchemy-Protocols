@@ -1468,10 +1468,14 @@ def build_checklist(mqtt_client) -> list:
                 continue
             kind = "zone controller" if dev.device_type == DeviceType.BAC else "prop board"
             checks.append(Check(
-                f"device_{name}", f"{dev.icon} {name}", f"Prop Boards — {dev.room}",
+                f"device_{name}", f"{dev.icon} {config.CHECKLIST_LABELS.get(name, name)}", f"Prop Boards — {dev.room}",
                 "blocking",
                 f"The {kind} for {name} ({dev.room}). If it doesn't answer, its puzzle "
                 "is dead and the game can't be completed."
+                + (" This is the BRIDGE board that carries the star table's signals to the game (the table "
+                   "itself has no network link). If it is silent, a solved star never reaches the game. It "
+                   "has been dropping out from loss of power: check its power supply and cable at the table."
+                   if name == "StarTable" else "")
                 + (" This board is normally powered OFF (it shares the pump relay), so "
                    "the checklist switches the fountain on, pings it, then switches it "
                    "off again - expect ~10s of water." if name == "WaterFountain" else ""),
