@@ -906,6 +906,35 @@ def check_ai_launcher(ctx):
                         f"{st_data.get('phase', '?')}, status beat {int(st_age)}s ago "
                         "(no launcher needed)")
 
+    # 2026-10-10: Parley UP but reporting ok=false. This used to fall through
+    # to "Parley is NOT running ... no AI program is running", which was false
+    # (its status beat was arriving) and could not be Ignored. Parley sets
+    # ok=false when ANY room mic is missing; a missing mic alone does not
+    # silence the characters, and by operator policy (2026-08-04) a missing mic
+    # must not block the start - the mic's own row carries that. Anything else
+    # Parley reports (bad config, closed live conversation) still fails.
+    if hasattr(mc, "parley_running") and mc.parley_running():
+        reasons, mic_only = mc.parley_problems()
+        ver = (st_data or {}).get("version", "?")
+        why = "; ".join(reasons) or "it did not say why"
+        beat = f"status beat {int(st_age)}s ago"
+        if mic_only:
+            return "warn", (f"Parley v{ver} IS running ({beat}) but cannot open a microphone: "
+                            f"{why}. The characters still talk; the one in that room cannot "
+                            "hear the players"), {
+                "layman": ("The AI program (Parley) is up and will voice the game. It is "
+                           "reporting a problem only because a room microphone is missing: "
+                           "the character in that room will speak its story lines but cannot "
+                           "hear or answer the players."),
+                "fix": None,
+                "human_fix": ("Plug the missing USB microphone back into the SAME USB port "
+                              "(Windows remembers the room name per port), then approve "
+                              "'Start the AI Character program' or restart Parley so it "
+                              "re-opens the mic, and re-run the checklist. Restarting Parley "
+                              "without the mic plugged in changes nothing."),
+            }
+        return "fail", (f"Parley v{ver} IS running ({beat}) but reports a problem: {why}")
+
     def _age():
         return mc.get_system_signals().get("ai_launcher", {}).get("age_s")
 

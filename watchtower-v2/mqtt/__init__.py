@@ -715,7 +715,11 @@ class MQTTClient:
             age = _launcher_age()
             if age is not None and age <= config.AI_LAUNCHER_FRESH_S:
                 return  # supervisor alive — it spawns the brain itself, as designed
-            if self.parley_alive():
+            if self.parley_running():
+                # 2026-10-10: was parley_alive() (needs ok=true). With a room
+                # mic unplugged Parley runs fine but reports ok=false, so this
+                # fell through and the fix below would have KILLED and
+                # restarted the running Parley at the start of every game.
                 # Parley (2026-09-22) has no launcher and receives GameStart
                 # itself. Respawning ai_launcher.py here would boot the OLD
                 # brain alongside it — two characters talking at once.
@@ -883,6 +887,40 @@ class MQTTClient:
         detail = sig.get("detail")
         return (age is not None and age <= (fresh_s or config.AI_STATUS_FRESH_S)
                 and isinstance(detail, dict) and detail.get("ok") is True)
+
+    def parley_running(self, fresh_s: Optional[int] = None) -> bool:
+        """True when Parley's PROCESS is up: a fresh AI/status beat that carries
+        uptime_s (its retained 'parley offline' last-will has none). Unlike
+        parley_alive() this ignores the ok flag. 2026-10-10: Parley reports
+        ok=false whenever ANY room mic is missing, and everything that asked
+        parley_alive() then treated a running Parley as dead - the checklist
+        said 'no AI program is running' and the GameStart sentry would have
+        killed and restarted it at the start of every game."""
+        sig = self.get_system_signals().get("ai_status", {})
+        age = sig.get("age_s")
+        detail = sig.get("detail")
+        return (age is not None and age <= (fresh_s or config.AI_STATUS_FRESH_S)
+                and isinstance(detail, dict) and "uptime_s" in detail)
+
+    def parley_problems(self):
+        """Why a RUNNING Parley reports ok=false, in plain words. Returns
+        (reasons, mic_only): mic_only is True when missing microphones are the
+        ONLY problem (the characters still talk; one of them cannot hear)."""
+        detail = self.get_system_signals().get("ai_status", {}).get("detail")
+        if not isinstance(detail, dict):
+            return [], False
+        other, mics = [], []
+        if detail.get("config_ok") is False:
+            probs = "; ".join(str(p) for p in (detail.get("config_problems") or [])[:3])
+            other.append("its config is invalid" + (f" ({probs})" if probs else ""))
+        sess = detail.get("session")
+        if isinstance(sess, dict) and sess.get("open") is False:
+            other.append(f"the live {sess.get('agent') or 'character'} conversation is closed"
+                         + (f" ({sess.get('last_reason')})" if sess.get("last_reason") else ""))
+        for room, m in sorted((detail.get("mic") or {}).items()):
+            if isinstance(m, dict) and not m.get("ok"):
+                mics.append(f"{room} mic ({m.get('error') or 'not delivering audio'})")
+        return other + mics, bool(mics) and not other
 
     def get_ai_beat_results(self) -> list:
         """Last 20 Parley BeatResult receipts, oldest first."""
