@@ -5,7 +5,7 @@ Auto-Remediation — owner-approved hands-off restarts
 don't even bother giving me the correction, just automatically shut down M3
 and restart it." Same treatment approved for the dead/deaf AI launcher.
 
-Exactly THREE remediations live here:
+Exactly FOUR remediations live here:
 
   m3_restart    kill + relaunch Mystery.exe (guardian.fixes.fix_restart_m3,
                 the standing audio-wedge cure — ~30s, no story data lost).
@@ -24,6 +24,14 @@ Exactly THREE remediations live here:
                 incident. The script ABORTS itself (never guesses) on
                 missing/ambiguous device names, so a held-back or failed
                 attempt falls through to the normal alert.
+  parley_bench  2026-10-18 owner directive on the stale/failed Parley bench row
+                ("set it up to auto fix that problem by running the python
+                script yourself every time from now on"): run Parley's
+                bench\bench_all.py --quick (config, voice clock, queue, clock,
+                a fake game with NO MQTT, and the room mics; it skips every
+                bench that opens ElevenLabs sessions). ~2.5 min, so the
+                checklist starts it in a background thread and reads the
+                fresh result on its next run. Also refreshes mic_selftest.json.
 
 Safety rails (identical for both):
   * NEVER while a game is in progress (M3 story State == Running, same signal
@@ -40,6 +48,7 @@ This module never publishes MQTT and never touches WatchTower itself.
 """
 
 import os
+import sys
 import json
 import time
 import logging
@@ -220,6 +229,56 @@ def try_start_ai_launcher(mc) -> dict:
                     "start Parley (AI characters V2), replacing any old AI program" if parley
                     else "restart dead/deaf ai_launcher.py (AI Character supervisor)",
                     _restart, _verify, verify_timeout_s=45)
+
+
+def parley_bench_held_back(mc):
+    """Same gates _attempt applies to the Parley bench, checked WITHOUT marking
+    an attempt, so the checklist can say why it didn't start one. Returns the
+    reason string, or None when an auto-run may start now."""
+    if game_in_progress(mc):
+        return "auto-run held back: a game looks live right now (M3 story Running)"
+    left = _cooldown_left_s("parley_bench", config.AUTO_REMEDIATE_COOLDOWN_S)
+    if left > 0:
+        return (f"auto-run already tried in the last {config.AUTO_REMEDIATE_COOLDOWN_S // 60} min "
+                f"(next automatic try in {int(left / 60)} min)")
+    return None
+
+
+def try_run_parley_bench(mc) -> dict:
+    """Run Parley's quick bench suite (bench_all.py --quick) and report whether
+    it PASSED. Blocks ~2.5 min - callers run it in a background thread. The
+    quick suite fakes MQTT and skips the ElevenLabs-session benches; it does
+    open the room mics for ~40 s (fine alongside a pre-game Parley)."""
+    script = os.path.join(config.PARLEY_BENCH_DIR, "bench_all.py")
+    if not os.path.exists(script):
+        return {"ran": False, "ok": None, "note": f"auto-run impossible: {script} not found"}
+    t_start = time.time()
+
+    def _run():
+        try:
+            p = subprocess.run([sys.executable, script, "--quick"], cwd=config.PARLEY_DIR,
+                               capture_output=True, text=True, timeout=900,
+                               creationflags=subprocess.CREATE_NO_WINDOW)
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "output": "bench_all.py timed out after 15 min"}
+        lines = [ln for ln in (p.stdout or "").splitlines()
+                 if ln.startswith(("PASS ", "FAIL ", "bench_all:"))]
+        summary = next((ln for ln in reversed(lines) if ln.startswith("bench_all:")),
+                       f"bench_all.py exit {p.returncode}")
+        failed = [ln.split()[1] for ln in lines if ln.startswith("FAIL ") and len(ln.split()) > 1]
+        return {"ok": True, "output": summary + (f" - failed: {', '.join(failed)}" if failed else "")}
+
+    def _verify():   # it RAN; this decides pass/fail from the file Guardian reads
+        try:
+            if os.path.getmtime(config.PARLEY_BENCH_RESULT) < t_start - 1:
+                return False
+            with open(config.PARLEY_BENCH_RESULT, encoding="utf-8") as fh:
+                return json.load(fh).get("pass") is True
+        except Exception:  # noqa: BLE001
+            return False
+
+    return _attempt("parley_bench", mc, "run Parley's bench suite (bench_all.py --quick)",
+                    _run, _verify, verify_timeout_s=5)
 
 
 def try_rebaseline_routing(mc) -> dict:

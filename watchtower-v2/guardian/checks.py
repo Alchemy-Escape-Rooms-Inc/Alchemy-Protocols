@@ -26,6 +26,7 @@ import time
 import socket
 import shutil
 import logging
+import threading
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -1002,7 +1003,73 @@ def _parley_result_file(path: str, max_age_days: float):
     return data, age_days, None
 
 
+# 2026-10-18 operator directive: when the Parley bench row is stale or failed,
+# WatchTower runs bench_all.py --quick itself (auto_remediate: pre-game only,
+# loop-guarded to one try per 2 h). It takes ~2.5 min, so it runs in the
+# background and the NEXT checklist run reads the fresh result.
+_PB_LOCK = threading.Lock()
+_PB_JOB = {"thread": None, "started": None, "finished": None, "result": None}
+
+
+def _parley_bench_worker(mc):
+    import auto_remediate
+    try:
+        res = auto_remediate.try_run_parley_bench(mc)
+    except Exception as e:  # noqa: BLE001 - a crashed auto-run never crashes WatchTower
+        logger.exception("Parley bench auto-run crashed")
+        res = {"ran": True, "ok": False, "note": f"auto-run crashed: {e}"}
+    with _PB_LOCK:
+        _PB_JOB["finished"] = time.strftime("%H:%M:%S")
+        _PB_JOB["result"] = res
+
+
+def _parley_bench_autorun(ctx) -> str:
+    """Start (or report) the background bench run. Returns a note for the row."""
+    import auto_remediate
+    with _PB_LOCK:
+        t = _PB_JOB["thread"]
+        if t is not None and t.is_alive():
+            return (f"AUTO-RUNNING Parley's bench right now (started {_PB_JOB['started']}, "
+                    "about 3 min) - re-run the checklist when it's done")
+        held = auto_remediate.parley_bench_held_back(ctx.get("mqtt"))
+        if held:
+            last = _PB_JOB["result"]
+            if last and last.get("ran") and _PB_JOB["finished"]:
+                verdict = "PASSED" if last.get("ok") else "FAILED"
+                return (f"WatchTower auto-ran the bench at {_PB_JOB['finished']} and it {verdict}"
+                        f" ({last.get('note', '')}); {held}")
+            return held
+        t = threading.Thread(target=_parley_bench_worker, args=(ctx.get("mqtt"),),
+                             name="parley-bench-autorun", daemon=True)
+        _PB_JOB.update(thread=t, started=time.strftime("%H:%M:%S"), finished=None, result=None)
+        t.start()
+    return ("AUTO-RUN STARTED: WatchTower is running Parley's bench_all.py --quick by itself "
+            "(about 3 min; it opens the room mics briefly) - re-run the checklist when it's done")
+
+
 def check_parley_bench(ctx):
+    """Wrapper (2026-10-18): the real check, plus the automatic re-run. A
+    passing result within a day of going stale is refreshed in the background
+    too, so the row should rarely turn red at all."""
+    result = _check_parley_bench_raw(ctx)
+    status, detail = result[0], result[1]
+    if status == "pass":
+        _d, age, _e = _parley_result_file(config.PARLEY_BENCH_RESULT, 1e9)
+        if age is not None and age >= max(config.PARLEY_BENCH_MAX_AGE_D - 1, 0):
+            detail += " || refreshing it before it goes stale: " + _parley_bench_autorun(ctx)
+        return status, detail
+    if status != "fail":
+        return result
+    detail += " || " + _parley_bench_autorun(ctx)
+    return status, detail, {
+        "human_fix": ("Nothing to do: WatchTower re-runs Parley's bench by itself (before "
+                      "games only, at most once every 2 h) and the next checklist run shows "
+                      "the result. If it keeps FAILING, fix what it names - usually a "
+                      "missing or unplugged room mic - or ask Tink."),
+    }
+
+
+def _check_parley_bench_raw(ctx):
     """Parley (2026-09-22) proves itself with its own bench suite (config,
     voice clock, queue, clock, game, mic) and writes bench/last_run.json.
     Fresh + passing = the program that will run tonight's show has been
