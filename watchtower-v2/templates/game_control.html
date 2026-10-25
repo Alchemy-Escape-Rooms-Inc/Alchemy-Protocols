@@ -85,33 +85,18 @@
 .bn-item.benched { background:rgba(212,160,23,.12); border-color:rgba(212,160,23,.45); }
 .bn-item input { accent-color:#d4a017; width:16px; height:16px; cursor:pointer; flex:none; }
 
-/* Power — Amazon smart switches (Alexa cloud) */
+/* Shared section body padding (was part of the old Power CSS) */
 .pw-body { padding:12px 16px; }
-.pw-banner { display:none; align-items:center; gap:12px; padding:12px 14px; border-radius:8px;
-    background:rgba(212,160,23,.10); border:1px solid rgba(212,160,23,.45); margin-bottom:12px; }
-.pw-banner.show { display:flex; flex-wrap:wrap; }
-.pw-banner input { padding:8px 10px; border-radius:6px; border:1px solid #34455a;
-    background:#0e131a; color:inherit; min-width:220px; font-family:inherit; }
-.pw-err { display:none; padding:8px 12px; border-radius:8px; margin-bottom:12px;
-    background:rgba(192,57,43,0.12); border:1px solid #c0392b; font-size:.85rem; }
-.pw-err.show { display:block; }
-.pw-master { display:flex; gap:10px; margin-bottom:12px; }
-.pw-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:12px; }
-.pw-card { border:1px solid #24313f; border-radius:10px; padding:12px 14px;
-    background:#141c26; display:flex; flex-direction:column; gap:8px; }
-.pw-card.on { border-color:#27ae60; background:#12331f; }
-.pw-name { font-weight:600; font-size:.9rem; display:flex; align-items:center; gap:8px; }
-.pw-dot { width:9px; height:9px; border-radius:50%; background:#5b6c7f; flex:none; }
-.pw-card.on .pw-dot { background:#27ae60; box-shadow:0 0 8px #27ae60; }
-.pw-state { font-size:.72rem; opacity:.6; }
-.pw-btns { display:flex; gap:8px; margin-top:auto; }
-.pw-btn { flex:1; padding:7px 0; border-radius:7px; border:1px solid #34455a;
-    background:#1c2431; color:inherit; cursor:pointer; font-size:.82rem; font-family:inherit; }
-.pw-btn:hover { background:#24313f; }
-.pw-btn.busy { opacity:.4; pointer-events:none; }
-.pw-btn-on { border-color:#27ae60; }
-.pw-btn-off { border-color:#c0392b; }
-.pw-empty { opacity:.6; padding:14px 0; text-align:center; font-size:.85rem; }
+
+/* Room power — Voice Monkey -> Alexa routines */
+.rp-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:12px 16px; }
+.rp-btn { padding:12px 28px; border-radius:8px; border:1px solid #34455a; background:#1c2431;
+    color:inherit; cursor:pointer; font-size:1rem; font-weight:700; font-family:inherit; }
+.rp-btn:hover { background:#24313f; }
+.rp-btn.busy { opacity:.4; pointer-events:none; }
+.rp-on { border-color:#27ae60; }
+.rp-off { border-color:#c0392b; }
+.rp-status { font-size:.85rem; opacity:.75; }
 </style>
 {% endblock %}
 
@@ -216,69 +201,13 @@
 
 <div id="gc-checklist"></div>
 
-<!-- Power — the 8 Amazon Smart Plugs, driven through the Alexa cloud -->
+<!-- Room power — fires Voice Monkey triggers that run the Alexa "room on" / "room off" routines -->
 <div class="gc-cat" style="margin-top:22px;">
-    <div class="gc-cat-head" onclick="togglePower()">
-        <span>🔌 Power — Smart Switches</span>
-        <span class="gc-cat-badge" id="pw-badge">…</span>
-    </div>
-    <div class="pw-body" id="pw-section">
-
-        <!-- WatchTower holds the account's authenticator key, so it IS the
-             2FA app — keep the current code visible for any Amazon sign-in. -->
-        <div id="pw-otp-any" style="display:none; margin-bottom:12px; font-size:.9rem;">
-            🔐 Amazon 2FA code:
-            <span id="pw-otp-any-code" style="font-family:'JetBrains Mono',monospace; font-size:1.1rem;
-                  background:#0e131a; border:1px solid #34455a; border-radius:8px; padding:6px 12px; margin-left:6px;"></span>
-            <span style="opacity:.55; font-size:.75rem; margin-left:8px;">changes every 30s — works for any Amazon sign-in on this account</span>
-        </div>
-
-        <div class="pw-err" id="pw-err"></div>
-
-        <div class="pw-banner" id="pw-link">
-            <span style="font-size:1.3rem;">🔗</span>
-            <div style="flex:1 1 100%;">
-                <div style="font-weight:700;">Link the Alexa account</div>
-                <div style="font-size:.8rem; opacity:.75; margin-top:4px;">
-                    Amazon blocks sign-ins from apps unless the account has an <b>authenticator app</b> —
-                    that's the "can't verify email / number" screen. One-time setup:
-                    Amazon app or site → <b>Login &amp; Security → 2-Step Verification → Add authenticator app</b> →
-                    tap <b>"Can't scan the barcode?"</b> → copy the long key into the box below.
-                    The current 6-digit code shows here so you can finish Amazon's setup with it.
-                </div>
-            </div>
-            <input id="pw-email" type="email" placeholder="Amazon account email">
-            <input id="pw-otp" type="text" placeholder="2FA authenticator key (long code)" style="min-width:300px;">
-            <button class="gc-fix-btn" onclick="startLink()">Link</button>
-            <span id="pw-otp-now" style="display:none; font-family:'JetBrains Mono',monospace; font-size:1.05rem;
-                  background:#0e131a; border:1px solid #34455a; border-radius:8px; padding:8px 14px;"></span>
-        </div>
-
-        <div class="pw-banner" id="pw-linking">
-            <span style="font-size:1.3rem;">⏳</span>
-            <div style="flex:1; min-width:220px;">
-                <div style="font-weight:700;">Waiting for the Amazon sign-in to finish…</div>
-                <div style="font-size:.8rem; opacity:.75;">Complete the login in the tab that opened. This clears on its own.</div>
-            </div>
-            <span id="pw-otp-live" style="display:none; font-family:'JetBrains Mono',monospace; font-size:1.05rem;
-                  background:#0e131a; border:1px solid #34455a; border-radius:8px; padding:8px 14px;"></span>
-            <a id="pw-login-url" class="gc-fix-btn" style="text-decoration:none;" target="_blank" href="#">Open login page</a>
-        </div>
-
-        <div class="pw-master" id="pw-master" style="display:none;">
-            <button class="pw-btn pw-btn-off" style="flex:none; padding:9px 22px; font-weight:700;"
-                    onclick="setAllPlugs(false)">⏻ ALL OFF</button>
-            <button class="pw-btn pw-btn-on" style="flex:none; padding:9px 22px; font-weight:700;"
-                    onclick="setAllPlugs(true)">⚡ ALL ON</button>
-            <span style="flex:1;"></span>
-            <button class="pw-btn" style="flex:none; padding:9px 16px;" onclick="refreshPlugs()">↻ Refresh</button>
-        </div>
-
-        <div class="pw-grid" id="pw-grid"></div>
-        <div class="pw-empty" id="pw-empty" style="display:none;">
-            No switches found on the account yet — hit Refresh after linking.
-        </div>
-
+    <div class="gc-cat-head"><span>🔌 Room Power</span></div>
+    <div class="rp-row">
+        <button class="rp-btn rp-on" id="rp-on" onclick="roomPower('on')">⚡ ON</button>
+        <button class="rp-btn rp-off" id="rp-off" onclick="roomPower('off')">⏻ OFF</button>
+        <span class="rp-status" id="rp-status"></span>
     </div>
 </div>
 
@@ -959,115 +888,19 @@ loadBench();
 // The bench auto-clears server-side when a game starts — keep the panel honest.
 setInterval(loadBench, 15000);
 
-// ===================== Power — Amazon smart switches =====================
-let pwBusy = false;
-
-function togglePower() {
-    const b = document.getElementById("pw-section");
-    b.style.display = b.style.display === "none" ? "" : "none";
-}
-
-function renderPlugs(st) {
-    document.getElementById("pw-link").classList.toggle("show", st.ready && !st.logged_in && !st.linking);
-    document.getElementById("pw-linking").classList.toggle("show", !!st.linking);
-    if (st.login_url) document.getElementById("pw-login-url").href = st.login_url;
-    const err = document.getElementById("pw-err");
-    err.textContent = st.error || "";
-    err.classList.toggle("show", !!st.error && st.logged_in === false && !st.linking && st.error !== "Alexa account not linked yet");
-    if (st.email) {
-        const em = document.getElementById("pw-email");
-        if (!em.value) em.value = st.email;
-    }
-    const devs = st.devices || [];
-    const badge = document.getElementById("pw-badge");
-    if (!st.logged_in) badge.textContent = st.linking ? "linking…" : "not linked";
-    else {
-        const on = devs.filter(d => d.on === true).length;
-        badge.textContent = `${on}/${devs.length} on`;
-        badge.className = "gc-cat-badge" + (on ? " bad" : "");
-    }
-    const grid = document.getElementById("pw-grid");
-    grid.innerHTML = "";
-    devs.forEach(d => {
-        const card = document.createElement("div");
-        card.className = "pw-card" + (d.on === true ? " on" : "");
-        const state = d.on === true ? "ON" : (d.on === false ? "OFF" : "state unknown");
-        card.innerHTML = `<div class="pw-name"><span class="pw-dot"></span><span class="nm"></span></div>` +
-            `<div class="pw-state">${state}</div>` +
-            `<div class="pw-btns"><button class="pw-btn pw-btn-on">On</button>` +
-            `<button class="pw-btn pw-btn-off">Off</button></div>`;
-        card.querySelector(".nm").textContent = d.name;
-        const [onBtn, offBtn] = card.querySelectorAll("button");
-        onBtn.onclick = () => setPlug(d.entity_id, true);
-        offBtn.onclick = () => setPlug(d.entity_id, false);
-        if (pwBusy) { onBtn.classList.add("busy"); offBtn.classList.add("busy"); }
-        grid.appendChild(card);
-    });
-    document.getElementById("pw-master").style.display = (st.logged_in && devs.length) ? "flex" : "none";
-    document.getElementById("pw-empty").style.display = (st.logged_in && !devs.length) ? "block" : "none";
-}
-
-function loadPlugs() {
-    return fetch("/api/plugs").then(r => r.json()).then(st => { renderPlugs(st); return st; }).catch(() => {});
-}
-
-function startLink() {
-    const email = document.getElementById("pw-email").value.trim();
-    const otp = document.getElementById("pw-otp").value.trim();
-    if (!email) { showMsg("Enter the Amazon account email first.", true); return; }
-    fetch("/api/plugs/login", {method:"POST", headers:{"Content-Type":"application/json"},
-           body: JSON.stringify({email, otp_secret: otp})})
+// ===================== Room power (Voice Monkey) =====================
+function roomPower(state) {
+    const btns = [document.getElementById("rp-on"), document.getElementById("rp-off")];
+    const st = document.getElementById("rp-status");
+    btns.forEach(x => x.classList.add("busy"));
+    st.textContent = "Sending " + state.toUpperCase() + "…";
+    fetch("/api/room-power/" + state, {method:"POST"})
         .then(r => r.json())
-        .then(j => {
-            if (j.login_url) window.open(j.login_url, "_blank");
-            else if (j.error) showMsg(j.error, true);
-            loadPlugs();
-        });
+        .then(j => { st.textContent = j.ok ? "Room " + state.toUpperCase() + " sent at " + new Date().toLocaleTimeString()
+                                           : "Failed: " + (j.error || j.reply || "unknown"); })
+        .catch(e => { st.textContent = "Failed: " + e; })
+        .finally(() => btns.forEach(x => x.classList.remove("busy")));
 }
-
-// Live 6-digit code from the saved authenticator key. WatchTower holds the
-// account's 2FA secret, so surface the current code any time one exists.
-function pollOtp() {
-    fetch("/api/plugs/otp").then(r => r.json()).then(j => {
-        document.getElementById("pw-otp-any").style.display = j.code ? "block" : "none";
-        document.getElementById("pw-otp-any-code").textContent = j.code || "";
-        for (const id of ["pw-otp-now", "pw-otp-live"]) {
-            const el = document.getElementById(id);
-            el.style.display = j.code ? "inline-block" : "none";
-            el.textContent = j.code ? `2FA code: ${j.code}` : "";
-        }
-    }).catch(() => {});
-}
-pollOtp();
-setInterval(pollOtp, 5000);
-
-function setPlug(entityId, on) {
-    pwBusy = true;
-    fetch("/api/plugs/power", {method:"POST", headers:{"Content-Type":"application/json"},
-           body: JSON.stringify({entity_id: entityId, on})})
-        .then(r => r.json())
-        .then(j => { if (j.error) showMsg(j.error, true); })
-        .finally(() => { pwBusy = false; loadPlugs(); });
-}
-
-function setAllPlugs(on) {
-    if (!on && !confirm("Turn ALL switches OFF?")) return;
-    pwBusy = true;
-    fetch("/api/plugs/all", {method:"POST", headers:{"Content-Type":"application/json"},
-           body: JSON.stringify({on})})
-        .then(r => r.json())
-        .then(j => { if (j.error) showMsg(j.error, true); })
-        .finally(() => { pwBusy = false; loadPlugs(); });
-}
-
-function refreshPlugs() {
-    fetch("/api/plugs/refresh", {method:"POST"}).then(() => loadPlugs());
-}
-
-loadPlugs();
-setInterval(loadPlugs, 5000);
-// Ask the backend to re-poll real plug states now and then (it hits Amazon).
-setInterval(() => { fetch("/api/plugs/states").then(() => loadPlugs()).catch(() => {}); }, 30000);
 
 // ===== Ship wall cameras ====================================================
 // 4 sliders -> POST /api/ship-camera on release; backend publishes RETAINED

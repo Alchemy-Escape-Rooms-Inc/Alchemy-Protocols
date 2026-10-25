@@ -34,7 +34,7 @@ from routes.api import api, set_mqtt_client
 from routes.chat_api import chat_api, init_chat
 from routes.guardian_api import guardian_api
 from routes.pages import pages
-from routes.plugs_api import plugs_api
+from routes.room_power_api import room_power_api
 from routes.say_api import say_api, set_mqtt_client as say_set_mqtt_client
 from routes.direct_api import direct_api, set_mqtt_client as direct_set_mqtt_client
 from routes.calls_api import calls_api
@@ -92,7 +92,7 @@ def create_app():
     app.register_blueprint(guardian_api)
     app.register_blueprint(chat_api)
     app.register_blueprint(pages)
-    app.register_blueprint(plugs_api)
+    app.register_blueprint(room_power_api)   # Room ON/OFF via Voice Monkey
     app.register_blueprint(say_api)   # Talk to the Players (/api/say)
     app.register_blueprint(direct_api)  # Direct the Character (/api/direct)
     app.register_blueprint(calls_api)   # Alyssa Calls (/api/calls)
@@ -192,15 +192,6 @@ def main():
         logger.info("Mic probes started")
     except Exception as e:  # noqa: BLE001 - mic probe must never block launch
         logger.warning(f"Mic probe failed to start: {e}")
-
-    # Alexa smart-plug manager (Power page). Restores the saved Amazon session
-    # in the background; if none exists the page just shows the Link button.
-    try:
-        from alexa_plugs import manager as plugs_manager
-        plugs_manager.start()
-        logger.info("Alexa plugs manager started")
-    except Exception as e:  # noqa: BLE001 - plug control must never block launch
-        logger.warning(f"Alexa plugs manager failed to start: {e}")
 
     # Create Flask app
     app = create_app()

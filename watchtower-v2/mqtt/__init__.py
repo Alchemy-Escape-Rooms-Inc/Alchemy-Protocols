@@ -319,6 +319,12 @@ class MQTTClient:
         self.connected = False
         logger.warning(f"Disconnected from MQTT broker (rc={rc})")
 
+    def _m3_running(self):
+        """M3 story State is Running and was heard in the last 10 min."""
+        m3 = self.get_system_signals().get("m3", {})
+        return bool(m3.get("detail") == "Running" and m3.get("age_s") is not None
+                    and m3["age_s"] <= 600)
+
     def _on_message(self, client, userdata, msg):
         """Handle incoming MQTT messages."""
         topic = msg.topic
@@ -349,6 +355,15 @@ class MQTTClient:
         if topic == "MermaidsTale/GameStart" and not msg.retain:
             threading.Thread(target=self._gamestart_ai_sentry,
                              name="gamestart-ai-sentry", daemon=True).start()
+
+        # Waterfall on with the jungle (owner 2026-10-25): M3 event 32 "Jungle
+        # Door Open" sends OPEN here; fire the Voice Monkey "waterfall on"
+        # routine. Live games only, so bench/reset door tests don't run it.
+        if (topic == "MermaidsTale/JungleDoor/command" and payload.upper() == "OPEN"
+                and not msg.retain and self._m3_running()):
+            from routes.room_power_api import trigger, WATERFALL_ON
+            threading.Thread(target=trigger, args=(WATERFALL_ON,),
+                             name="waterfall-on", daemon=True).start()
 
         # Ship-camera tuning readback: the broker replays the retained value on
         # our '#' subscribe, so the /game sliders always show what the game is
