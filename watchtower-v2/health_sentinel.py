@@ -168,7 +168,7 @@ def _check_devices(now: float):
         # 2. Board offline (LWT, long silence, or never heard) — only judged
         #    while the room is AWAKE; a powered-down room clears these.
         fid = f"offline:{name}"
-        if not awake:
+        if not awake or name in config.NO_PING_CHECK:    # owner took these off the checks (2026-10-26)
             _clear_finding(fid)
         elif d["offline_lwt"]:
             _set_finding(fid, "error", f"{name} offline (LWT)",
@@ -194,8 +194,12 @@ def _check_devices(now: float):
         # 3. WiFi flapping (chatty boards with repeated heartbeat holes).
         fid = f"flap:{name}"
         arr = [t for t in d["arrivals"] if now - t <= config.HEALTH_FLAP_WINDOW_S]
-        if len(arr) >= 20:
-            diffs = [b - a for a, b in zip(arr, arr[1:])]
+        # one heartbeat arrives as a burst of messages (status + log + sensors in the same second), so
+        # messages < 2 s apart count as ONE beat; without this the median gap was ~0 s and every board
+        # on a 60 s or 5 min heartbeat read as a "chatty board with dropouts" (2026-10-26, 11 false alarms)
+        beats = [t for i, t in enumerate(arr) if i == 0 or t - arr[i - 1] >= 2.0]
+        if len(beats) >= 20:
+            diffs = [b - a for a, b in zip(beats, beats[1:])]
             med = statistics.median(diffs)
             gaps = sum(1 for x in diffs if x > config.HEALTH_FLAP_GAP_S)
             if med <= config.HEALTH_FLAP_CHATTY_MEDIAN_S and gaps >= config.HEALTH_FLAP_MIN_GAPS:
@@ -207,6 +211,8 @@ def _check_devices(now: float):
                              "solve bug); check RSSI / AP", device_name=name)
             else:
                 _clear_finding(fid)
+        else:
+            _clear_finding(fid)
 
 
 def _check_boot_loops():
