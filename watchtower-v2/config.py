@@ -396,8 +396,9 @@ ESP32_DEVICES = [
 # tracked. EMPTY since 2026-10-05: the owner asked for "Star Table" to come off the report believing it was the
 # table (which has no MQTT), then put it back the same day on learning that the "StarTable" entry IS the
 # StarTableBridge board - the only thing that tells the game a star was solved.
-# 2026-10-26 owner: take Captains-Cuffs and TridentCabinet off the ping check.
-NO_PING_CHECK = {"Captains-Cuffs", "TridentCabinet"}
+# 2026-10-26 owner: take Captains-Cuffs and TridentCabinet off the ping check; later "take cannon 1 off the props
+# list for now" (its cannonball sensor is dead). These boards also raise no Health Sentinel alarms.
+NO_PING_CHECK = {"Captains-Cuffs", "TridentCabinet", "Cannon1"}
 
 # What a board is called on the pre-game checklist when its registry name misleads. Display only: the registry
 # name, MQTT topic and bench list are unchanged.

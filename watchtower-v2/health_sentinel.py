@@ -154,6 +154,10 @@ def _check_devices(now: float):
     awake = _room_awake(devices)
     for d in devices:
         name = d["name"]
+        if name in config.NO_PING_CHECK:    # owner took these off the checks (2026-10-26): no alarms at all
+            for kind in ("sensor", "offline", "flap"):
+                _clear_finding(f"{kind}:{name}")
+            continue
 
         # 1. Sensor self-test FAIL (the Cannon1 VL6180X class).
         fid = f"sensor:{name}"
@@ -168,7 +172,7 @@ def _check_devices(now: float):
         # 2. Board offline (LWT, long silence, or never heard) — only judged
         #    while the room is AWAKE; a powered-down room clears these.
         fid = f"offline:{name}"
-        if not awake or name in config.NO_PING_CHECK:    # owner took these off the checks (2026-10-26)
+        if not awake:
             _clear_finding(fid)
         elif d["offline_lwt"]:
             _set_finding(fid, "error", f"{name} offline (LWT)",
@@ -218,7 +222,7 @@ def _check_devices(now: float):
 def _check_boot_loops():
     loops = _mc.get_pregame_signals().get("boot_loops", {})
     active = {n: i for n, i in loops.items()
-              if i["last_age_s"] <= config.PREGAME_BOOTLOOP_QUIET_S}
+              if i["last_age_s"] <= config.PREGAME_BOOTLOOP_QUIET_S and n not in config.NO_PING_CHECK}
     for name, info in active.items():
         _set_finding(f"bootloop:{name}", "error", f"{name} reboot-looping",
                      f"{name} rebooted {info['count']}x, last "
