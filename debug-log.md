@@ -912,7 +912,7 @@ if (!client.connected()) {
 
 ### 19. Balancing-Scale — Multiple Logic Bugs
 
-**Status:** ⚠️ ACTIVE
+**Status:** ✓ RESOLVED (board is now ESP32 firmware v1.4.9; the notes below describe the old Nano code)
 
 **File:** `/sessions/elegant-dazzling-ptolemy/repos/Balancing-Scale/Balancing_Scale.ino`
 

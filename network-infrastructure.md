@@ -477,7 +477,7 @@ This table shows which devices fully comply with the Alchemy MQTT Protocol Stand
 | **hall-sensor-with-mqtt** | 10.1.10.115 | 1883 | ✓ | ⚠ | ✓ | ✗ | ✗ | ✗ | ✓ | **Different topic structure** (sensor/*) |
 | **Eleven-Labs-Avatar-Project** | **10.1.10.228** | 1883 | ✓ | ✓ | ? | ? | ? | ? | ⚠ | **Different broker IP**, isolated system |
 | **CaptainsCuffs** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | **❌ NO NETWORK** — mechanical only |
-| **BalancingScale** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | **❌ NO NETWORK** — pending network integration |
+| **BalancingScale** | 10.1.10.115 | 1883 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **ESP32 v1.4.9**, board IP 10.1.10.201, OTA 3232 |
 | **Ruins-Wall-Panel** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | **❌ NO NETWORK** — status unknown |
 | **SunDial** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | **❌ NO NETWORK** — has bugs in logic layer |
 | **WaterFountain** | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | **❌ NO NETWORK** — water sensor only |
@@ -501,7 +501,7 @@ This table shows which devices fully comply with the Alchemy MQTT Protocol Stand
 4. ~~**Remove space from "Jungle Door"** → "JungleDoor"~~ ✅ RESOLVED in MANIFEST v3.3.0
 5. **Add MQTT heartbeat to CabinDoor & BarrelPiston**
 6. **Verify CoveSlidingDoor, JungleDoor, Driftwood** can tolerate standardized 5-minute heartbeat
-7. **Plan network integration** for CaptainsCuffs, BalancingScale, Ruins-Wall-Panel, SunDial, WaterFountain
+7. **Plan network integration** for CaptainsCuffs, Ruins-Wall-Panel, SunDial, WaterFountain
 
 ---
 

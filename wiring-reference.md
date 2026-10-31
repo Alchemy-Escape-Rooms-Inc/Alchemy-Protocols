@@ -159,17 +159,17 @@
 
 ---
 
-### Balancing-Scale (Arduino Nano)
+### Balancing-Scale (ESP32 classic)
 
 | Pin | Function | Direction | Notes |
 |-----|----------|-----------|-------|
-| Pin 4 | RST_BT | IN | Reset button (INPUT_PULLUP) |
-| Pin 5 | CHK_BT | IN | Check button (INPUT_PULLUP) |
-| Pin 9/10 | SoftwareSerial1 RX/TX | IN/OUT | RFID Reader 1 (ID-12LA) |
-| Pin 11/12 | SoftwareSerial2 RX/TX | IN/OUT | RFID Reader 2 (ID-12LA) |
-| SERVO_PIN | Servo Control | OUT | ⚠️ **UNDEFINED IN CODE** |
+| GPIO 18 | Spice plate reader RX | IN | UART1, 115200 baud |
+| GPIO 19 | Spice plate reader TX | OUT | UART1 |
+| GPIO 16 | Coins plate reader RX | IN | UART2, 115200 baud |
+| GPIO 17 | Coins plate reader TX | OUT | UART2 |
+| GPIO 13 | Needle servo | OUT | 500-2400 us, 100 Hz. YAY 155 deg, NAY 30 deg, center 1566 us |
 
-**RFID:** 2x ID-12LA (125kHz passive)
+**RFID:** 2x multi-tag readers (0xF5-frame protocol, up to 5 tags at once), not ID-12LA. No buttons.
 
 ---
 

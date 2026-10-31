@@ -27,14 +27,13 @@ These items block gameplay and must be fixed before next operation.
   - **File:** `ShipCoordinate.ino`
   - **Severity:** CRITICAL — Device won't compile
 
-- [ ] **Fix Balancing-Scale bugs**
-  - [ ] Define `SERVO_PIN` constant
-  - [ ] Fix `isAlreadyStored()` return value (returns void instead of bool)
-  - [ ] Implement `checkSuccess()` function logic
-  - [ ] Test servo movement and weight detection
+- [x] **Fix Balancing-Scale bugs** ✅ RESOLVED, firmware is ESP32 v1.4.9
+  - [x] Define `SERVO_PIN` constant (GPIO 13)
+  - [x] Fix `isAlreadyStored()` return value
+  - [x] Implement `checkSuccess()` function logic
+  - [x] Test servo movement and weight detection
   - **Repo:** [Balancing-Scale](https://github.com/Alchemy-Escape-Rooms-Inc/Balancing-Scale)
-  - **File:** `Balancing_Scale.ino`
-  - **Severity:** CRITICAL — Logic errors prevent puzzle completion
+  - **File:** `Code/BalancingScale/BalancingScale.ino`
 
 - [ ] **Fix Sun-Dial assignment bugs**
   - [ ] Line 262: Change `==` to `=` (assignment)
@@ -109,7 +108,7 @@ These devices currently have no network connection and should be networked for i
 | Ruins-Wall-Panel | Standalone | WiFi+MQTT | Medium | Ruins_Wall_Panel.ino |
 | Sun-Dial | Standalone (2 boards) | WiFi+MQTT | High | Sand_dial_new_boards_FINAL.ino |
 | WaterFountain | Standalone | WiFi+MQTT | Medium | WaterFountain.ino |
-| Balancing-Scale | Standalone | WiFi+MQTT | Medium | Balancing_Scale.ino |
+| Balancing-Scale | WiFi+MQTT (done) | WiFi+MQTT | Done | Code/BalancingScale/BalancingScale.ino |
 
 - [ ] **Add WiFi+MQTT to CaptainsCuffs**
   - [ ] Add ESP32 or ESP8266 module for WiFi
@@ -135,10 +134,10 @@ These devices currently have no network connection and should be networked for i
   - [ ] Add water level sensor integration
   - **Repo:** [WaterFountain](https://github.com/Alchemy-Escape-Rooms-Inc/WaterFountain)
 
-- [ ] **Add WiFi+MQTT to Balancing-Scale**
-  - [ ] Upgrade from Arduino Nano to ESP32-S3
-  - [ ] Implement MQTT status reporting
-  - [ ] Test weight detection over network
+- [x] **Add WiFi+MQTT to Balancing-Scale** ✅ RESOLVED, classic ESP32, not an ESP32-S3
+  - [x] Upgrade from Arduino Nano to ESP32
+  - [x] Implement MQTT status reporting
+  - [x] Test weight detection over network
   - **Repo:** [Balancing-Scale](https://github.com/Alchemy-Escape-Rooms-Inc/Balancing-Scale)
 
 ### Device-Specific Improvements
@@ -264,7 +263,7 @@ These 8 items **must** be resolved before next game operation:
 
 1. LuminousShell — Won't compile
 2. ShipNavMap — Won't compile
-3. Balancing-Scale — Logic bugs prevent completion
+3. ~~Balancing-Scale — Logic bugs prevent completion~~ ✅ RESOLVED (ESP32 v1.4.9)
 4. Sun-Dial — Assignment operator bugs
 5. API keys — Exposed in repositories
 6. CabinDoor — No WiFi credentials

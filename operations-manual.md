@@ -739,68 +739,105 @@ https://github.com/Alchemy-Escape-Rooms-Inc/Driftwood
 ### 11. BALANCING-SCALE
 
 **Description:**
-A mechanical balance scale prop with RFID readers. Players place tagged items on each side. The scale must balance (equal weight or RFID tag count) to solve the puzzle.
+A pendulum scale prop with an RFID reader under each plate and a needle moved by a servo. Players match each of the 5 spice pouches against coins of equal value. The scale reads tags, not real weight. Firmware v1.4.9 (`Code/BalancingScale/BalancingScale.ino`), checked against the sketch 2026-10-31.
 
 **Hardware Specifications:**
 
 | Component | Specification |
 |---|---|
-| Microcontroller | Arduino Nano |
-| WiFi/MQTT | NONE — Standalone (serial only) |
-| Serial Baud Rate | 9600 |
-| RFID Reader Type | ID-12LA (125 kHz) |
-| RFID Reader 1 | SoftwareSerial pins 9–10 |
-| RFID Reader 2 | SoftwareSerial pins 11–12 |
-| Buttons | RST=GPIO 4, CHK=GPIO 5 |
-| Servo | Pin UNDEFINED — **BUG** |
-| Puzzle Logic | Check if balance matches expected weight |
+| Microcontroller | ESP32 (classic), CP210x USB bridge |
+| WiFi/MQTT | Yes: WiFi AlchemyGuest, broker 10.1.10.115:1883 |
+| OTA | Yes: hostname BalancingScale, port 3232, password = the Wi-Fi password |
+| USB Serial Baud Rate | 115200 |
+| RFID Readers | 2x multi-tag reader, 0xF5-frame command protocol, 115200 baud, reads up to 5 tags at once (not ID-12LA) |
+| Servo | GPIO 13, 500-2400 us at 100 Hz |
+| Buttons | None (reset and solve are MQTT commands) |
+| Puzzle Logic | Plate values must match, for all 5 spices |
 
 **Pin Assignments:**
 
 | Pin | Function | Type |
 |---|---|---|
-| 4 | Reset button | Digital in |
-| 5 | Check/submit button | Digital in |
-| 9–10 | RFID Reader 1 (soft serial) | Rx/Tx |
-| 11–12 | RFID Reader 2 (soft serial) | Rx/Tx |
-| ? (UNDEFINED) | Servo control | Digital out |
+| GPIO 18 / 19 | Spice plate reader, ESP32 RX / TX (UART1) | Rx/Tx |
+| GPIO 16 / 17 | Coins plate reader, ESP32 RX / TX (UART2) | Rx/Tx |
+| GPIO 13 | Needle servo | PWM out |
+
+**How the Puzzle Works:**
+
+| Spice pouch | Value |
+|---|---|
+| Yeast | 2.50 |
+| SugarCane | 2.25 |
+| Vanilla | 1.75 |
+| Molasses | 2.75 |
+| Cloves | 1.50 |
+
+Coins (2 of each, 8 total): gold 1.00, silver 0.75, copper 0.50, bronze 0.25. In the code these are GoldDoubloon, PieceOfEight, HalfDoubloon and QuarterDoubloon.
+
+The board scans both plates about once a second:
+- Either plate empty: needle center (1566 us, about 101 degrees).
+- Both loaded, values differ: needle NAY (30 degrees).
+- Both loaded, values equal: needle YAY (155 degrees), and if the value is a spice's value that spice counts as matched.
+- All 5 matched: publishes `SOLVED`. The needle keeps following the plates afterward.
+
+A tag counts as lifted only after 3 missed scans in a row, so a single dropped read does not move the needle.
 
 **MQTT Topics:**
-None — Standalone device (no network).
 
-**⚠️ CRITICAL BUGS:**
-
-| Issue | Impact | Workaround |
+| Topic | Direction | Payload |
 |---|---|---|
-| `SERVO_PIN` undefined | Code will NOT compile | Define `#define SERVO_PIN X` before `Servo` initialization |
-| `isAlreadyStored()` always returns `false` | Duplicate items may not register correctly | Implement item tracking array |
-| `checkSuccess()` empty function | Puzzle completion never triggers | Add balance verification logic |
+| `MermaidsTale/BalancingScale/command` | Subscribe | PING, STATUS, RESET, PUZZLE_RESET, SOLVE, HALTCOIN, HALTSPICE, REBOOTCOIN, REBOOTSPICE; tuning only: SERVO_TEST:angle, SERVO_US:microseconds |
+| `MermaidsTale/BalancingScale/command` | Publish | PONG, OK |
+| `MermaidsTale/BalancingScale/status` | Publish | ONLINE (retained), OFFLINE (retained, LWT), SOLVED (not retained), HEARTBEAT every 5 min, STATUS reply |
+| `MermaidsTale/BalancingScale/log` | Publish | Boot line (with `RESET:reason`) and log text |
+| `MermaidsTale/BalancingScale/message/SuccessCount` | Publish | Spices matched so far, 1-5 |
+| `MermaidsTale/BalancingScale/message/servo`, `/message/ServoState` | Publish | yay / nay; true / false |
+| `MermaidsTale/BalancingScale/message/Spice`, `/message/UID0-4` | Publish | Tag just read |
+| `MermaidsTale/BalancingScale/{Yeast,SugarCane,Vanilla,Molasses,Cloves}` | Publish | `true` when that spice is matched |
+| `MermaidsTale/BalancingScale/system/...` | Publish | Plate weights, stored tags, needle center |
+
+M3 matches `SOLVED` on /status and forwards `MermaidsTale/ScaleSolved=true`. M3 also reads `/message/SuccessCount`, and sends PUZZLE_RESET on the story reset.
+
+**Self-Recovery:**
+
+| Trigger | Action |
+|---|---|
+| Wi-Fi not joined in 20 s, or lost for over 20 s | Reboot |
+| Broker unreachable for 60 s with Wi-Fi up | Reboot |
+| Main loop stalled for 30 s | Watchdog reboot (boot line shows `RESET:TASK_WDT`) |
 
 **How to Reset:**
 ```
-Press RST button on device
+PUZZLE_RESET on /command   (clears both plates and progress, needle center, no reboot)
+RESET on /command          (reboots the board)
 ```
 
 **How to Test:**
-**CANNOT FULLY TEST** — Code has critical compilation errors. Must fix SERVO_PIN and function implementations first.
+1. Send `STATUS` on /command. Expect `BalancingScale v1.4.9 | State=ONLINE | ...` on /status.
+2. Send `PING` on /command. Expect `PONG` on /command.
+3. Put Yeast on the spice plate and coins worth 2.50 on the coins plate. The needle should go to YAY and SuccessCount should rise.
+4. Change the coins so the values differ. The needle should go to NAY.
+5. Clear a plate. The needle should return to center about 3 seconds later.
+6. Send `PUZZLE_RESET` when finished.
 
-**Partial Testing (after fixes):**
-1. **RFID Reading:** Place tagged item on Reader 1 side. Monitor serial output for tag ID.
-2. **Balance Check:** Place equal weights on both sides. Press CHK button. Servo should move to indicate balanced (after implementation).
+**Known Issues:**
+- `Bad frame.` on /message: a reader answered without the 0xF5 header. Was every 3-4 s on 10-29; the message does not name the plate.
+- A plate reads 5 tags at most, so a stack of more than 5 tags will not read correctly.
 
 **Dependencies:**
-- Arduino Nano microcontroller
-- 2x ID-12LA RFID readers
-- Servo motor (pin TBD)
-- Balance scale mechanism
+- ESP32 (classic)
+- 2x multi-tag RFID readers
+- Servo and needle linkage
+- Tagged spice pouches and coins
+- MQTT broker and M3
 
 **Physical Location:**
-- Cove area (table-mounted puzzle)
+- Listed here under the Cove area; the WatchTower registry lists it under Ship Deck. Not confirmed which is right.
 
 **Source Code:**
 https://github.com/Alchemy-Escape-Rooms-Inc/Balancing-Scale
 
-**Deployment Status:** ⚠️ **NOT PRODUCTION READY** — Critical bugs prevent compilation and execution.
+**Deployment Status:** LIVE. v1.4.9 flashed over OTA 2026-10-29, confirmed by STATUS on the wire.
 
 ---
 
@@ -1371,7 +1408,6 @@ These devices operate independently with no network connectivity. Control is via
 | Ruins-Wall-Panel | Arduino Mega | Button matrix | Jungle |
 | Sun-Dial | Mega + Uno | Buttons + potentiometers | Jungle |
 | Water-Fountain | Uno/Nano | Potentiometers | Jungle |
-| Balancing-Scale | Arduino Nano | RFID + buttons | Cove |
 
 **Serial Connection Details:**
 
@@ -1380,7 +1416,6 @@ These devices operate independently with no network connectivity. Control is via
 | Captain's Cuffs | COM? (TBD) | 9600 | DB-9 or USB |
 | Ruins-Wall-Panel | COM? (TBD) | 9600 | DB-9 or USB |
 | Sun-Dial (Board 1 & 2) | COM? (TBD) | TBD | DB-9 or USB |
-| Balancing-Scale | COM? (TBD) | 9600 | USB (Nano) |
 
 **Diagnostic Tools:**
 - **Arduino IDE Serial Monitor** — Monitor output and send commands
@@ -1507,15 +1542,12 @@ This section summarizes all critical issues found during the audit. **DO NOT dep
 | **ShipNavMap** | Backwards reconnect logic | Device disconnects unexpectedly | Review WiFi reconnect conditional |
 | **LuminousShell** | `lightPin` UNDEFINED | Code will NOT compile | Add `#define lightPin GPIO_X` |
 | **LuminousShell** | Variable mismatch (mqtt vs client) | Undefined symbol | Standardize variable names |
-| **BalancingScale** | `SERVO_PIN` UNDEFINED | Code will NOT compile | Define `#define SERVO_PIN X` |
 | **SunDial** | 4x double `==` instead of `=` (lines 262, 280, 297, 317) | Assignment operators fail; code executes but variables not set | Change `==` to `=` on all 4 lines |
 
 ### Logic Errors (Runs but Fails Puzzle)
 
 | Device | Bug | Impact | Workaround |
 |---|---|---|---|
-| **BalancingScale** | `isAlreadyStored()` always returns `false` | Duplicate items don't register | Implement item tracking array |
-| **BalancingScale** | `checkSuccess()` empty function | Puzzle never completes | Add balance verification logic |
 
 ### Protocol / Configuration Issues
 
@@ -1562,7 +1594,7 @@ Use this table during shift setup or troubleshooting.
 | CabinDoor | ☐ | ☐ | ☐ | ☐ | **Firmware ambiguity** |
 | CoveSlidingDoor | ☐ | ☐ | ☐ | ☐ | v1.0.0; 30s heartbeat |
 | Driftwood | ☐ | ☐ | ☐ | ☐ | v2.2.5 |
-| BalancingScale | ☐ | N/A | N/A | ☐ | **BLOCKED:** Logic errors |
+| BalancingScale | ☐ | ☐ | ☐ | ☐ | v1.4.9 |
 | LuminousShell | ☐ | ☐ | ☐ | ☐ | **BLOCKED:** lightPin undefined |
 | JungleDoor | ☐ | ☐ | ☐ | ☐ | v3.3.0 |
 | RuinsWallPanel | ☐ | N/A | N/A | ☐ | Serial only |
@@ -1592,7 +1624,7 @@ Use this table during shift setup or troubleshooting.
 | Captain's Cuffs | 9600 | USB or DB-9 |
 | Ruins-Wall-Panel | 9600 | USB or DB-9 |
 | Sun-Dial | TBD | USB or DB-9 |
-| Balancing-Scale | 9600 | USB (Nano) |
+| Balancing-Scale | 115200 | USB (CP210x) |
 
 ### Common Commands (MQTT)
 
@@ -1617,7 +1649,7 @@ Use this table during shift setup or troubleshooting.
 | WirelessMotionSensor | (not versioned) | ⚠️ Partial Watchtower |
 | LuminousShell | (not versioned) | ❌ **NOT DEPLOYABLE** |
 | ShipNavMap | (not versioned) | ❌ **NOT DEPLOYABLE** |
-| BalancingScale | (not versioned) | ❌ **NOT DEPLOYABLE** |
+| BalancingScale | v1.4.9 | ✓ Current |
 | SunDial | (not versioned) | ❌ **NOT DEPLOYABLE** |
 
 ---
