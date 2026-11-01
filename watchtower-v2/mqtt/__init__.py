@@ -50,12 +50,12 @@ MQTT_LOG_DIR = os.path.join(
 )
 MQTT_LOG_PREFIX = "mqtt_"
 MQTT_LOG_SUFFIX = ".txt"
-MQTT_LOG_RETENTION = timedelta(hours=24)
+MQTT_LOG_RETENTION = timedelta(days=30)  # owner 11-01: was 24h, which deleted live multi-day logs at each restart
 MQTT_LOG_NAME_FORMAT = "%Y-%m-%d_%H%M%S"
 
 
 def _purge_old_mqtt_logs():
-    """Delete session logs whose filename timestamp is older than 24h."""
+    """Delete session logs whose filename timestamp is older than MQTT_LOG_RETENTION."""
     if not os.path.isdir(MQTT_LOG_DIR):
         return
     cutoff = datetime.now() - MQTT_LOG_RETENTION
