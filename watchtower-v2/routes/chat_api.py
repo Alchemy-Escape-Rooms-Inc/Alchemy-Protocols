@@ -293,7 +293,7 @@ TOOLS = [
         "name": "search_mqtt_logs",
         "description": (
             "Search or tail the on-disk MQTT wire logs (logs/mqtt_*.txt — the source of truth "
-            "for what actually fired on the broker, one line per message: [time] topic | payload). "
+            "for what actually fired on the broker, one line per message: [date time] topic | payload; logs from before 2026-11-01 have no date). "
             "With a query: returns matching lines (case-insensitive substring). Without a query: "
             "returns the last lines of the file. file_index 0 = current session's log, 1 = previous, etc."
         ),

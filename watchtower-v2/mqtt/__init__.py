@@ -41,6 +41,8 @@ logger = logging.getLogger(__name__)
 # MQTT SESSION LOGGING
 # ─────────────────────────────────────────────
 # One .txt per Watchtower process boot, named mqtt_YYYY-MM-DD_HHMMSS.txt,
+# one line per message: [YYYY-MM-DD HH:MM:SS.mmm] topic | payload. Logs started before
+# 2026-11-01 have no date in the bracket.
 # written to watchtower-v2/logs/. Files older than 24h are purged on startup.
 
 MQTT_LOG_DIR = os.path.join(
@@ -339,7 +341,10 @@ class MQTTClient:
         # diagnostics aren't hidden by _should_show_message).
         if self._session_log_file is not None:
             try:
-                ts = now.strftime("%H:%M:%S.%f")[:-3]
+                # Date on every line (owner 2026-11-01): a log runs for days, so a bare
+                # clock cannot say which day it was. Readers: Tools/game_qa.py P_WIRE_LINE
+                # takes this and the older undated lines.
+                ts = now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
                 self._session_log_file.write(f"[{ts}] {topic} | {payload}\n")
             except Exception:
                 pass
