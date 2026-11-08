@@ -883,6 +883,62 @@ def _ai_launcher_process_running() -> bool:
     return out == "YES"
 
 
+def _python_script_running(pattern: str) -> bool:
+    """True if a python process's command line matches the regex `pattern`."""
+    out = _powershell(
+        "if (Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
+        f"Where-Object {{ $_.CommandLine -match '{pattern}' }}) "
+        "{ 'YES' } else { 'NO' }", timeout=20)
+    return out == "YES"
+
+
+def _camera_script_check(ctx, label, pattern, sig_key):
+    """Shared core for the camera-script rows: process up + MQTT status ONLINE.
+    Returns a (result, detail) failure, or None when both are fine."""
+    if not _python_script_running(pattern):
+        return "fail", f"{label} is NOT running - its puzzle cannot be solved"
+    mc = ctx.get("mqtt")
+    if not mc or not mc.connected:
+        return None
+    st = (mc.get_system_signals().get(sig_key, {}) or {}).get("detail")
+    if st != "ONLINE":
+        return "fail", (f"{label} process is running but its MQTT status is "
+                        f"{st or 'never seen'} - it can't talk to the game")
+    return None
+
+
+def check_skull_vision(ctx):
+    """2026-11-07 owner: SkullVision (camera head-count for the Captain's
+    Quarters skull puzzle) died silently 09-02..09-04 and nothing noticed."""
+    bad = _camera_script_check(ctx, "SkullVision", r"skullvision\.py", "skull_vision")
+    if bad:
+        return bad
+    return "pass", "SkullVision running and ONLINE on MQTT"
+
+
+def check_barrel_cam(ctx):
+    """BarrelCam replaced the MiniBarrels RFID board (2026-11-07): it IS the
+    puzzle now - per-barrel sounds, barrel lights, and the solve."""
+    bad = _camera_script_check(ctx, "Barrel camera", r"barrel_order\.py", "barrel_cam")
+    if bad:
+        return bad
+    mc = ctx.get("mqtt")
+    if not mc or not mc.connected:
+        return "pass", "Barrel camera process is running (MQTT down - can't confirm more)"
+    hb = mc.get_system_signals().get("barrel_cam_hb", {}) or {}
+    age, d = hb.get("age_s"), hb.get("detail") or {}
+    if age is None or age > config.BARREL_CAM_HEARTBEAT_FRESH_S:
+        return "fail", ("Barrel camera script is up but its heartbeat is "
+                        + ("missing" if age is None else f"{int(age)}s old")
+                        + " - it may be frozen")
+    if d.get("camera") != "ok":
+        return "fail", "Barrel camera script can't get a picture from the Ship camera (10.1.10.67)"
+    barrels = ", ".join(d.get("barrels") or []) or "nothing"
+    note = (" - barrels are in the WINNING order, scramble them"
+            if d.get("solved") or not d.get("armed", True) else "")
+    return "pass", f"Barrel camera sees: {barrels}{note}"
+
+
 def check_ai_launcher(ctx):
     """The AI Character program's supervisor (ai_launcher.py) is the ONLY
     receiver of GameStart on the AI side — it spawns the character brain when
@@ -1543,6 +1599,22 @@ def build_checklist(mqtt_client) -> list:
                         "'EscapeRoom Pirate Original' and run 'python ai_launcher.py' (or "
                         "approve the one-click fix), wait ~30s for its first heartbeat. "
                         "Then re-run the checklist."),
+        Check("skull_vision", "Skull camera (SkullVision) running", "Game Systems", "blocking",
+              "The Captain's Quarters skull puzzle only solves when the number of skulls held "
+              "matches the number of players - and SkullVision (a camera script on this PC) is "
+              "the ONLY thing that counts the players. If it's dead the puzzle can never be "
+              "solved (09-02..09-04 it was dead and nothing noticed).",
+              check_skull_vision, fix_id="start_skull_vision", ignorable=True,
+              human_fix="Approve the one-click fix, or open a console in "
+                        "Repos\\Captains-Cuffs\\Code\\SkullVision and run 'python skullvision.py'."),
+        Check("barrel_cam", "Barrel camera (MiniBarrels) running", "Game Systems", "blocking",
+              "The mini barrels puzzle is read by the Ship camera now (the RFID readers are "
+              "retired). The barrel camera script on this PC sends the barrel sounds, the "
+              "barrel lights and the solve. If it's dead the barrels do nothing.",
+              check_barrel_cam, fix_id="start_barrel_cam", ignorable=True,
+              human_fix="Approve the one-click fix, or open a console in "
+                        "Repos\\MiniBarrels\\Code\\BarrelCam and run 'python barrel_order.py'. "
+                        "If it says it can't see the camera, check the Ship camera (10.1.10.67) is on."),
         Check("no_game_running", "No game currently in progress", "Game Systems", "blocking",
               "Starting the launcher during a live game would kill it for the players inside.",
               check_no_game_running),

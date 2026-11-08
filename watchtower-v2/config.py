@@ -398,7 +398,21 @@ ESP32_DEVICES = [
 # StarTableBridge board - the only thing that tells the game a star was solved.
 # 2026-10-26 owner: take Captains-Cuffs and TridentCabinet off the ping check; later "take cannon 1 off the props
 # list for now" (its cannonball sensor is dead). These boards also raise no Health Sentinel alarms.
-NO_PING_CHECK = {"Captains-Cuffs", "TridentCabinet", "Cannon1"}
+# 2026-11-07 owner: MiniBarrels off the ping check - the RFID board is replaced by the BarrelCam camera
+# script (its own "Barrel camera" checklist row checks it instead).
+NO_PING_CHECK = {"Captains-Cuffs", "TridentCabinet", "Cannon1", "MiniBarrels"}
+
+# Camera scripts that run on this PC and solve/feed puzzles (2026-11-07). Each publishes a retained
+# <base>/vision/status ONLINE with an MQTT last-will OFFLINE, so a dead script shows OFFLINE.
+#   SkullVision: Captain's Quarters skull puzzle head-count (Repos/Captains-Cuffs/Code/SkullVision/skullvision.py)
+#   BarrelCam:   MiniBarrels order from lid color splotches (Repos/MiniBarrels/Code/BarrelCam/barrel_order.py),
+#                also a JSON vision/heartbeat every 15 s saying whether the camera is delivering frames.
+SKULL_VISION_DIR = "C:/Users/Alchemy/Repos/Captains-Cuffs/Code/SkullVision"
+SKULL_VISION_STATUS_TOPIC = "MermaidsTale/CaptainsCuffs/vision/status"
+BARREL_CAM_DIR = "C:/Users/Alchemy/Repos/MiniBarrels/Code/BarrelCam"
+BARREL_CAM_STATUS_TOPIC = "MermaidsTale/MiniBarrels/vision/status"
+BARREL_CAM_HEARTBEAT_TOPIC = "MermaidsTale/MiniBarrels/vision/heartbeat"
+BARREL_CAM_HEARTBEAT_FRESH_S = 60
 
 # What a board is called on the pre-game checklist when its registry name misleads. Display only: the registry
 # name, MQTT topic and bench list are unchanged.

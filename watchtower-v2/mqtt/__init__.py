@@ -160,6 +160,12 @@ class MQTTClient:
         #   m3          -> M3/Stories/AMT/State == "Running" (game runner)
         self.system_signals: Dict[str, dict] = {
             "ai_brain":    {"last_seen": None, "detail": None},
+            #   skull_vision / barrel_cam -> camera scripts' retained
+            #                  vision/status (ONLINE, LWT OFFLINE); barrel_cam_hb
+            #                  -> BarrelCam's 15 s JSON heartbeat (camera ok?).
+            "skull_vision":  {"last_seen": None, "detail": None},
+            "barrel_cam":    {"last_seen": None, "detail": None},
+            "barrel_cam_hb": {"last_seen": None, "detail": None},
             "ai_launcher": {"last_seen": None, "detail": None},
             "m3":          {"last_seen": None, "detail": None},
             #   unreal_room -> MermaidsTale/Unreal/RoomStatus heartbeat (5s from
@@ -819,6 +825,18 @@ class MQTTClient:
             sig = self.system_signals["ai_launcher"]
             sig["last_seen"] = now
             sig["detail"] = payload or "alive"
+        elif topic == config.SKULL_VISION_STATUS_TOPIC:
+            sig = self.system_signals["skull_vision"]
+            sig["last_seen"] = now
+            sig["detail"] = payload
+        elif topic == config.BARREL_CAM_STATUS_TOPIC:
+            sig = self.system_signals["barrel_cam"]
+            sig["last_seen"] = now
+            sig["detail"] = payload
+        elif topic == config.BARREL_CAM_HEARTBEAT_TOPIC:
+            sig = self.system_signals["barrel_cam_hb"]
+            sig["last_seen"] = now
+            sig["detail"] = self._parse_json_dict(payload, "heartbeat")
         # M3 / Mythric game runner: State=Running on the AMT story.
         elif topic == "M3/Stories/AMT/State":
             sig = self.system_signals["m3"]

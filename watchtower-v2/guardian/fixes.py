@@ -197,6 +197,35 @@ def fix_restart_unreal(ctx):
                       "then re-run the checklist"}
 
 
+def _start_camera_script(title, folder, script, pattern):
+    if not os.path.exists(os.path.join(folder, script)):
+        return {"ok": False, "output": f"{script} not found in {folder}"}
+    # kill any stuck copy first (command-line match on this script only)
+    _run(["powershell", "-NoProfile", "-Command",
+          "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
+          f"Where-Object {{ $_.CommandLine -match '{pattern}' }} | "
+          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], timeout=30)
+    time.sleep(1)
+    try:
+        # same minimised titled window as the START bat, so STOP can close it
+        subprocess.Popen(f'start "{title}" /min cmd /k "cd /d "{folder}" && python {script}"',
+                         shell=True, cwd=folder)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "output": f"launch failed: {e}"}
+    return {"ok": True, "output": f"{script} started in a minimised '{title}' window. "
+                                  "Give it ~20s, then re-run the checklist."}
+
+
+def fix_start_skull_vision(ctx):
+    return _start_camera_script("SkullVision", config.SKULL_VISION_DIR.replace("/", "\\"),
+                                "skullvision.py", r"skullvision\.py")
+
+
+def fix_start_barrel_cam(ctx):
+    return _start_camera_script("BarrelCam", config.BARREL_CAM_DIR.replace("/", "\\"),
+                                "barrel_order.py", r"barrel_order\.py")
+
+
 def fix_start_ai_launcher(ctx):
     """(Re)start ai_launcher.py — the AI Character program's supervisor and the
     only GameStart receiver on the AI side. Kills any existing launcher (and any
@@ -413,6 +442,22 @@ FIXES = {
                   "its configured display in the ship start map. Takes ~60s. Do NOT "
                   "use mid-game. Re-run the checklist after.",
         "run": fix_restart_unreal,
+    },
+    "start_skull_vision": {
+        "title": "Start SkullVision (skull camera)",
+        "problem": "The camera script that counts players for the skull puzzle is not running "
+                   "or not connected - the skull puzzle can't be solved.",
+        "action": "Stop any stuck copy of skullvision.py and start it fresh in a minimised "
+                  "'SkullVision' window. Safe any time. Re-run the checklist after ~20s.",
+        "run": fix_start_skull_vision,
+    },
+    "start_barrel_cam": {
+        "title": "Start the barrel camera",
+        "problem": "The camera script that runs the mini barrels puzzle is not running, "
+                   "frozen, or not connected - the barrels won't sound, light or solve.",
+        "action": "Stop any stuck copy of barrel_order.py and start it fresh in a minimised "
+                  "'BarrelCam' window. Pre-game only. Re-run the checklist after ~20s.",
+        "run": fix_start_barrel_cam,
     },
     "start_ai_launcher": {
         "title": "Start the AI Character program",
