@@ -1690,3 +1690,19 @@ The following repos were updated since the last Grimoire revision:
 
 
 *Full regeneration recommended via Cowork. This is an automated snapshot only.*
+
+---
+
+## Auto-Scan Update — 2026-11-11 01:23 PM EST
+
+The following repos were updated since the last Grimoire revision:
+
+
+### New-Cannons (updated)
+- Source files: 29 C/C++, 0 JS/TS, 0 Python
+- PlatformIO config: Yes | Main source: Yes
+- Broker IPs found (verify correctness)
+- ⚠️ Potential exposed secrets detected
+
+
+*Full regeneration recommended via Cowork. This is an automated snapshot only.*
