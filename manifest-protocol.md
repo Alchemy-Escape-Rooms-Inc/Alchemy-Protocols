@@ -197,7 +197,7 @@ namespace manifest {
 
     // Network
     inline constexpr const char* WIFI_SSID     = "AlchemyGuest";
-    inline constexpr const char* WIFI_PASSWORD = "VoodooVacation5601";
+    inline constexpr const char* WIFI_PASSWORD = "<not stored in Git — see venue credentials record>";
     inline constexpr const char* MQTT_SERVER   = "10.1.10.115";
     inline constexpr int         MQTT_PORT     = 1883;
 

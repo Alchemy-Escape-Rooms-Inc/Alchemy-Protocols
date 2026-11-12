@@ -13,7 +13,7 @@ This document is the **authoritative standard** for MQTT communication across al
 | **Broker IP** | `10.1.10.115` |
 | **Broker Port** | `1883` |
 | **WiFi SSID** | `AlchemyGuest` |
-| **WiFi Password** | `VoodooVacation5601` |
+| **WiFi Password** | `<not stored in Git — see venue credentials record>` |
 | **Topic Pattern** | `MermaidsTale/{DeviceName}/{suffix}` |
 
 ---

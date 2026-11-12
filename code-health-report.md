@@ -184,7 +184,7 @@ Repos WITHOUT .gitignore:
 
 | Repo | Issue | Details |
 |------|-------|---------|
-| All ESP32 repos | Hardcoded WiFi Creds | `AlchemyGuest` / `VoodooVacation5601` in source code (acceptable for local network but documented) |
+| All ESP32 repos | Hardcoded WiFi Creds | `AlchemyGuest` / `<not stored in Git — see venue credentials record>` in source code (acceptable for local network but documented) |
 | CabinDoor | Placeholder Credentials | "YOUR_SSID"/"YOUR_PASSWORD" never replaced |
 
 ---

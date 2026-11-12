@@ -279,7 +279,7 @@ ESP32/Arduino props connected via MQTT (Mosquitto broker at 10.1.10.115:1883), B
 managed by BAM software, and the M3 master game control system.
 
 Key facts:
-- WiFi SSID: AlchemyGuest, Password: VoodooVacation5601
+- WiFi SSID: AlchemyGuest, Password: <not stored in Git — see venue credentials record>
 - MQTT Broker: 10.1.10.115, Standard Port: 1883, M3 Port: 1860
 - Network subnet: 10.1.10.x
 - WatchTower is the Python Flask system checker dashboard

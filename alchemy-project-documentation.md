@@ -303,7 +303,7 @@ namespace manifest {
 
     // Network
     inline constexpr const char* WIFI_SSID = "AlchemyGuest";
-    inline constexpr const char* WIFI_PASSWORD = "VoodooVacation5601";
+    inline constexpr const char* WIFI_PASSWORD = "<not stored in Git — see venue credentials record>";
     inline constexpr const char* MQTT_SERVER = "10.1.10.115";
     inline constexpr int MQTT_PORT = 1883;
 
@@ -412,7 +412,7 @@ namespace manifest {
 All ESP32 devices in the "A Mermaid's Tale" room follow the Alchemy MQTT Protocol:
 
 **Broker:** `10.1.10.115:1883`
-**WiFi:** SSID `AlchemyGuest`, Password `VoodooVacation5601`
+**WiFi:** SSID `AlchemyGuest`, Password `<not stored in Git — see venue credentials record>`
 **Topic Pattern:** `MermaidsTale/{DeviceName}/{suffix}`
 
 **Standard Suffixes:**
@@ -459,7 +459,7 @@ All ESP32 devices in the "A Mermaid's Tale" room follow the Alchemy MQTT Protoco
 | Resource | Address | Notes |
 |----------|---------|-------|
 | MQTT Broker | `10.1.10.115:1883` | Mosquitto on M3 machine |
-| WiFi Network | `AlchemyGuest` | Password: `VoodooVacation5601` |
+| WiFi Network | `AlchemyGuest` | Password: `<not stored in Git — see venue credentials record>` |
 | WatchTower Dashboard | `http://localhost:5000` | Flask app on M3 |
 | GitHub Organization | `Alchemy-Escape-Rooms-Inc` | All firmware repos |
 

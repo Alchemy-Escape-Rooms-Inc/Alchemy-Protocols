@@ -12,7 +12,9 @@ import os
 MQTT_BROKER = "10.1.10.115"
 MQTT_PORT = 1883
 WIFI_SSID = "AlchemyGuest"
-WIFI_PASSWORD = "VoodooVacation5601"
+# WiFi password is deliberately not stored here. It is not used by any code in
+# this project; the value lived here only as a note. See the venue credentials
+# record kept outside Git.
 
 # =============================================================================
 # FLASK
@@ -29,7 +31,10 @@ DATABASE_PATH = os.path.join(os.path.dirname(__file__), "watchtower.db")
 # =============================================================================
 # CLICKUP
 # =============================================================================
-CLICKUP_API_TOKEN = os.environ.get("CLICKUP_API_TOKEN", "pk_114238061_3PZ4VQGN7J6D853HXZDYYH9QUMX5GJUD")
+# Set the CLICKUP_API_TOKEN environment variable. Without it, issues still save
+# locally; they just do not appear in ClickUp. Never hard-code the token here:
+# this repository is public.
+CLICKUP_API_TOKEN = os.environ.get("CLICKUP_API_TOKEN", "")
 CLICKUP_WORKSPACE_ID = "9011667818"
 CLICKUP_LIST_ID = "901113164349"  # WatchTower Issues list
 CLICKUP_API_URL = "https://api.clickup.com/api/v2"

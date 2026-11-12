@@ -26,7 +26,7 @@
 
 ### WiFi Network
 - **SSID:** AlchemyGuest
-- **Password:** VoodooVacation5601
+- **Password:** <not stored in Git — see venue credentials record>
 - **Frequency:** Standard 2.4GHz (verify no 5GHz forcing)
 
 ### MQTT Broker
@@ -67,7 +67,7 @@ Two interactive cannons that detect when they are loaded (via proximity sensor) 
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v3.2.0 |
 | I2C Bus | SDA=GPIO15, SCL=GPIO18 |
@@ -130,7 +130,7 @@ Time-of-flight motion sensors that detect player movement in specific ship zones
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP8266 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | I2C Sensor | VL53L0X (time-of-flight) at default address 0x29 |
 | Trigger Distance | 200 mm (adjustable in firmware) |
@@ -190,7 +190,7 @@ A pneumatic piston that pushes a barrel or prop as a gameplay event trigger. Use
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | Latest (version not specified) |
 | Relay Logic | Active HIGH (HIGH = energized) |
@@ -257,7 +257,7 @@ A dynamic LED display showing a ship navigation map. Uses addressable WS2812B RG
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP8266 or ESP32 (unclear in firmware) |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | LED Type | WS2812B (Neopixel) addressable RGB |
 | LED Count | 15 total |
@@ -324,7 +324,7 @@ Interactive compass props that players must rotate to point in a specific direct
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v1.0.0 |
 | Potentiometer Input | GPIO 4 (ADC channel) |
@@ -463,7 +463,7 @@ A motorized cabin door that players must unlock to progress. Uses linear actuato
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 (actual); **PLACEHOLDER in primary repo** |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> (actual); **PLACEHOLDER in primary repo** |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v1.0.0 (primary) or v1.1.0 (legacy CabinDoor_S3) |
 | Relay Type | Active LOW (LOW = energized, must pull to GND) |
@@ -610,7 +610,7 @@ A motorized horizontal sliding door that opens and closes to block/allow player 
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v1.0.0 |
 | Motor Driver | XY160D H-bridge (IN1/IN2/ENA) |
@@ -677,7 +677,7 @@ A prop with embedded magnetic sensors that detects when magnets are brought into
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v2.2.5 |
 | I2C Bus | SDA=GPIO15, SCL=GPIO18 |
@@ -814,7 +814,7 @@ Decorative shells that light up (glow) when a player's hand is brought very clos
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32 or ESP8266 (unclear) |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | I2C Sensor | VL53L0X time-of-flight at default address 0x29 |
 | Trigger Distance | 50 mm (very close proximity) |
@@ -885,7 +885,7 @@ A motorized sliding door to the jungle area. Features PWM motor control, limit s
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 | Firmware Version | v3.3.0 |
 | Motor Driver | MD13S (direction + PWM) |
@@ -1194,7 +1194,7 @@ https://github.com/Alchemy-Escape-Rooms-Inc/WaterFountain
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | 10.1.10.115:1883 |
 
 **Arduino R4 Pins:**
@@ -1441,7 +1441,7 @@ An alternative implementation of hall sensor detection, related to the **Driftwo
 | Component | Specification |
 |---|---|
 | Microcontroller | ESP32-S3 (ESP-IDF, C firmware) |
-| WiFi Network | AlchemyGuest / VoodooVacation5601 |
+| WiFi Network | AlchemyGuest / <not stored in Git — see venue credentials record> |
 | MQTT Broker | mqtt://10.1.10.115:1883 |
 | I2C Sensors | 8x ALS31300 at addresses 0x60–0x67 |
 | Trigger Threshold | 3000 (slightly higher than Driftwood's 2000) |
@@ -1582,7 +1582,7 @@ Use this table during shift setup or troubleshooting.
 | Parameter | Value |
 |---|---|
 | SSID | AlchemyGuest |
-| Password | VoodooVacation5601 |
+| Password | <not stored in Git — see venue credentials record> |
 | Frequency | 2.4 GHz (verify no 5 GHz forcing) |
 
 ### Serial Connections (Standalone Devices)
